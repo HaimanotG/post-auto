@@ -8,3 +8,10 @@ Summary: <what changed, test results>
 Credential gaps (if any): <what a human needs to supply before this can be exercised live>
 ---
 
+---
+[iteration 1] task_id: m0-01 (Root workspace scaffold)
+Result: Task Complete
+Summary: Created pnpm-workspace.yaml (apps/*, packages/*), root package.json (private, pnpm workspace, packageManager pinned to pnpm@9.15.0, build/dev/test/lint/typecheck scripts delegating to turbo, turbo+typescript devDeps), turbo.json (build/dev/test/lint/typecheck task pipeline), .gitignore, README.md, .nvmrc and .node-version (pinned to Node 20). Created empty apps/{miniapp,api,trigger} and packages/{db,social,ai,render,shared,config} dirs per PLAN.md's monorepo layout, each with a .gitkeep placeholder since they're empty until later tasks populate them. Verified with `pnpm install` (succeeds, resolves turbo+typescript), and `pnpm run build` / `pnpm run test` / `pnpm run typecheck` (all run turbo with 0 packages in scope, exit clean since no workspace packages exist yet — expected for this task).
+Credential gaps: none (not credential_gated).
+---
+
