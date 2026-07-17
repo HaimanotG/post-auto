@@ -9,6 +9,13 @@ Credential gaps (if any): <what a human needs to supply before this can be exerc
 ---
 
 ---
+[iteration 2] task_id: m0-02 (packages/config: shared tsconfig/eslint/prettier)
+Result: Task Complete
+Summary: Created packages/config with tsconfig.base.json (strict TS, ES2022, Bundler resolution, noUncheckedIndexedAccess, verbatimModuleSyntax, noEmit:true so consumers opt into emitting for builds), eslint.config.js (flat config via typescript-eslint + @eslint/js recommended + eslint-config-prettier to disable stylistic rules that clash with Prettier), prettier.config.js (semi/double-quotes/trailing-commas-all/printWidth 100), and package.json (name @postauto/config, exports map for ./tsconfig.base.json, ./eslint, ./prettier, devDeps: eslint, @eslint/js, typescript-eslint, eslint-config-prettier, prettier, typescript). Verified: `pnpm install` resolves cleanly; `pnpm exec eslint .` and `pnpm exec prettier --check .` inside packages/config both pass with zero issues; confirmed tsconfig.base.json is a valid extendable base by creating a scratch project outside the repo that extends it and compiling a trivial .ts file with `tsc` (0 errors). Root `pnpm run build/lint/typecheck/test` (turbo) all succeed — lint executes packages/config's lint script cleanly, build/typecheck/test correctly no-op (no scripts defined yet, expected since this package only exports config files with no source to build/test).
+Credential gaps: none (not credential_gated).
+---
+
+---
 [iteration 1] task_id: m0-01 (Root workspace scaffold)
 Result: Task Complete
 Summary: Created pnpm-workspace.yaml (apps/*, packages/*), root package.json (private, pnpm workspace, packageManager pinned to pnpm@9.15.0, build/dev/test/lint/typecheck scripts delegating to turbo, turbo+typescript devDeps), turbo.json (build/dev/test/lint/typecheck task pipeline), .gitignore, README.md, .nvmrc and .node-version (pinned to Node 20). Created empty apps/{miniapp,api,trigger} and packages/{db,social,ai,render,shared,config} dirs per PLAN.md's monorepo layout, each with a .gitkeep placeholder since they're empty until later tasks populate them. Verified with `pnpm install` (succeeds, resolves turbo+typescript), and `pnpm run build` / `pnpm run test` / `pnpm run typecheck` (all run turbo with 0 packages in scope, exit clean since no workspace packages exist yet — expected for this task).
