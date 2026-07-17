@@ -1,0 +1,10 @@
+PostAuto build log — appended once per Ralph loop iteration.
+
+Format per entry:
+---
+[iteration N] task_id: <id> (<title>)
+Result: <Task Complete | Task Failed>
+Summary: <what changed, test results>
+Credential gaps (if any): <what a human needs to supply before this can be exercised live>
+---
+
