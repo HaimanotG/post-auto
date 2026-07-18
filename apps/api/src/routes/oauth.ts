@@ -11,8 +11,13 @@ import {
   GraphClient,
   THREADS_OAUTH_SCOPES,
 } from "@postauto/social";
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
+import {
+  requireAuthenticatedUser,
+  resolveOwnedBusiness,
+  type BusinessContextStore,
+} from "../lib/business-context.js";
 
 /**
  * The two independent OAuth grants Meta exposes (see PLAN.md's "Meta Graph
@@ -28,11 +33,6 @@ const oauthInitiablePlatformSchema = z.enum(["facebook_page", "threads"]);
 
 /** Single-use CSRF state tokens expire after this long if never returned to the callback. */
 const STATE_TOKEN_MAX_AGE_MS = 15 * 60 * 1000;
-
-export interface AuthenticatedUser {
-  id: string;
-  telegramUserId: bigint;
-}
 
 interface StoredOAuthState {
   id: string;
@@ -64,20 +64,7 @@ interface SocialAccountWriteFields {
  * interface pattern used by middleware/telegram-init-data.ts's
  * TelegramUserStore.
  */
-export interface OAuthStore {
-  business: {
-    findFirst(args: { where: { telegramOwnerUserId: bigint } }): Promise<{ id: string } | null>;
-    create(args: {
-      data: { name: string; telegramOwnerUserId: bigint; timezone: string };
-    }): Promise<{ id: string }>;
-  };
-  businessMember: {
-    upsert(args: {
-      where: { businessId_userId: { businessId: string; userId: string } };
-      update: Record<string, never>;
-      create: { businessId: string; userId: string; role: "owner" };
-    }): Promise<unknown>;
-  };
+export interface OAuthStore extends BusinessContextStore {
   oAuthState: {
     create(args: {
       data: { businessId: string; userId: string; platform: OAuthInitiablePlatform; stateToken: string };
@@ -173,46 +160,6 @@ function renderReturnToTelegramHtml(params: { connected: boolean; message: strin
 ${returnAction}
 </body>
 </html>`;
-}
-
-/**
- * Finds the business this Telegram user owns (per PLAN.md's `businesses`
- * table), creating one on first use, and ensures an owner membership row
- * exists. Every M1 route that needs a business_id resolves it this way until
- * a dedicated onboarding/business-creation flow exists.
- */
-async function resolveOwnedBusiness(prisma: OAuthStore, user: AuthenticatedUser): Promise<{ id: string }> {
-  const existing = await prisma.business.findFirst({ where: { telegramOwnerUserId: user.telegramUserId } });
-  const business =
-    existing ??
-    (await prisma.business.create({
-      data: {
-        name: `Business ${user.telegramUserId}`,
-        telegramOwnerUserId: user.telegramUserId,
-        timezone: "Africa/Addis_Ababa",
-      },
-    }));
-
-  await prisma.businessMember.upsert({
-    where: { businessId_userId: { businessId: business.id, userId: user.id } },
-    update: {},
-    create: { businessId: business.id, userId: user.id, role: "owner" },
-  });
-
-  return business;
-}
-
-async function requireAuthenticatedUser(
-  request: FastifyRequest,
-  reply: FastifyReply,
-): Promise<AuthenticatedUser | undefined> {
-  try {
-    const decoded = await request.jwtVerify<{ sub: string; telegramUserId: string }>();
-    return { id: decoded.sub, telegramUserId: BigInt(decoded.telegramUserId) };
-  } catch {
-    await reply.code(401).send({ error: "Missing or invalid Authorization token" });
-    return undefined;
-  }
 }
 
 /**

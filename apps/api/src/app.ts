@@ -4,9 +4,10 @@ import Fastify, { type FastifyInstance } from "fastify";
 import type { TelegramUserStore } from "./middleware/telegram-init-data.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerOAuthRoutes, type OAuthRoutesOptions, type OAuthStore } from "./routes/oauth.js";
+import { registerPostsRoutes, type PostStore } from "./routes/posts.js";
 
 export interface BuildAppOptions {
-  prisma: TelegramUserStore & OAuthStore;
+  prisma: TelegramUserStore & OAuthStore & PostStore;
   telegramBotToken: string;
   jwtSecret: string;
   metaAppId: string;
@@ -61,6 +62,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     threadsFetchImpl: options.threadsFetchImpl,
     now: options.now,
   });
+
+  registerPostsRoutes(app, { prisma: options.prisma });
 
   return app;
 }
