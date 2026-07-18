@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../app.js";
 import type { TelegramWebAppUser } from "../middleware/telegram-init-data.js";
+import { createFixturePrismaStore, FIXTURE_TOKEN_ENCRYPTION_KEY } from "../test-utils/fixture-prisma.js";
 
 const FIXTURE_BOT_TOKEN = "123456:fixture-bot-token-for-tests";
 const FIXTURE_JWT_SECRET = "fixture-jwt-secret-for-tests";
@@ -47,9 +48,13 @@ describe("POST /auth/telegram", () => {
     });
 
     app = await buildApp({
-      prisma: { user: { upsert } },
+      prisma: createFixturePrismaStore({ user: { upsert } }),
       telegramBotToken: FIXTURE_BOT_TOKEN,
       jwtSecret: FIXTURE_JWT_SECRET,
+      metaAppId: "fixture-meta-app-id",
+      metaAppSecret: "fixture-meta-app-secret",
+      tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
+      baseUrl: "https://api.fixture.test",
     });
   });
 

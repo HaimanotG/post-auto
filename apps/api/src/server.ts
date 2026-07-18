@@ -8,6 +8,10 @@ async function main(): Promise<void> {
     prisma,
     telegramBotToken: env.TELEGRAM_BOT_TOKEN,
     jwtSecret: env.JWT_SECRET,
+    metaAppId: env.META_APP_ID,
+    metaAppSecret: env.META_APP_SECRET,
+    tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY,
+    baseUrl: env.API_BASE_URL,
   });
 
   await app.listen({ port: env.PORT, host: "0.0.0.0" });

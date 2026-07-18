@@ -1,15 +1,20 @@
 import type { FastifyInstance } from "fastify";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "./app.js";
+import { createFixturePrismaStore, FIXTURE_TOKEN_ENCRYPTION_KEY } from "./test-utils/fixture-prisma.js";
 
 describe("GET /health", () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
     app = await buildApp({
-      prisma: { user: { upsert: vi.fn() } },
+      prisma: createFixturePrismaStore(),
       telegramBotToken: "fixture-bot-token",
       jwtSecret: "fixture-jwt-secret",
+      metaAppId: "fixture-meta-app-id",
+      metaAppSecret: "fixture-meta-app-secret",
+      tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
+      baseUrl: "https://api.fixture.test",
     });
   });
 

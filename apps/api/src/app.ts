@@ -3,11 +3,20 @@ import rawBody from "fastify-raw-body";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { TelegramUserStore } from "./middleware/telegram-init-data.js";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerOAuthRoutes, type OAuthRoutesOptions, type OAuthStore } from "./routes/oauth.js";
 
 export interface BuildAppOptions {
-  prisma: TelegramUserStore;
+  prisma: TelegramUserStore & OAuthStore;
   telegramBotToken: string;
   jwtSecret: string;
+  metaAppId: string;
+  metaAppSecret: string;
+  tokenEncryptionKey: string;
+  baseUrl: string;
+  /** Injectable for tests; forwarded to registerOAuthRoutes. */
+  graphClient?: OAuthRoutesOptions["graphClient"];
+  threadsFetchImpl?: OAuthRoutesOptions["threadsFetchImpl"];
+  now?: OAuthRoutesOptions["now"];
 }
 
 /**
@@ -37,6 +46,17 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerAuthRoutes(app, {
     prisma: options.prisma,
     telegramBotToken: options.telegramBotToken,
+  });
+
+  registerOAuthRoutes(app, {
+    prisma: options.prisma,
+    metaAppId: options.metaAppId,
+    metaAppSecret: options.metaAppSecret,
+    tokenEncryptionKey: options.tokenEncryptionKey,
+    baseUrl: options.baseUrl,
+    graphClient: options.graphClient,
+    threadsFetchImpl: options.threadsFetchImpl,
+    now: options.now,
   });
 
   return app;

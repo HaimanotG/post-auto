@@ -15,6 +15,7 @@
     "@fastify/jwt": "^10.2.0",
     "@postauto/db": "workspace:*",
     "@postauto/shared": "workspace:*",
+    "@postauto/social": "workspace:*",
     "fastify": "^5.2.0",
     "fastify-raw-body": "^5.0.0",
     "zod": "^3.24.1"
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@postauto/config": "workspace:*",
     "@types/node": "^22.10.2",
+    "msw": "^2.7.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
