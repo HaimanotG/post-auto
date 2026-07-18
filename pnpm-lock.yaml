@@ -118,9 +118,21 @@ importers:
 
   apps/trigger:
     dependencies:
+      '@postauto/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@postauto/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@postauto/social':
+        specifier: workspace:*
+        version: link:../../packages/social
       '@trigger.dev/sdk':
         specifier: ^3.3.17
-        version: 3.3.17(zod@3.23.8)
+        version: 3.3.17(zod@3.25.76)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@postauto/config':
         specifier: workspace:*
@@ -4286,7 +4298,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@trigger.dev/sdk@3.3.17(zod@3.23.8)':
+  '@trigger.dev/sdk@3.3.17(zod@3.25.76)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.52.1
@@ -4302,7 +4314,7 @@ snapshots:
       uncrypto: 0.1.3
       uuid: 9.0.1
       ws: 8.21.1
-      zod: 3.23.8
+      zod: 3.25.76
     transitivePeerDependencies:
       - bufferutil
       - supports-color
