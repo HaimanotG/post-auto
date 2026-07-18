@@ -1,0 +1,9 @@
+{
+  "extends": "@postauto/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "noEmit": false
+  },
+  "include": ["src", "trigger.config.ts"]
+}
