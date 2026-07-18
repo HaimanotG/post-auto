@@ -1,0 +1,26 @@
+{
+  "name": "@postauto/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "prisma generate --allow-no-models",
+    "build": "pnpm run generate && tsc -p tsconfig.build.json",
+    "typecheck": "pnpm run generate && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "pnpm run generate && vitest run"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "@postauto/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
