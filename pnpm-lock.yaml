@@ -17,6 +17,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@postauto/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@postauto/shared':
         specifier: workspace:*
         version: link:../../packages/shared
