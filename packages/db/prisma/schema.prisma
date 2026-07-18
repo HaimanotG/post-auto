@@ -1,4 +1,6 @@
-// Empty schema scaffold for M0. Table definitions land in M1 (see PLAN.md's data model section).
+// M1 core tables per PLAN.md's data model section. Remaining tables
+// (rendered_slides, inbox_messages, ai_reply_decisions, webhook_events,
+// engagement_snapshots) land in later migrations (M2-M4).
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,4 +8,170 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  facebook_page
+  instagram_business
+  threads
+}
+
+enum BusinessMemberRole {
+  owner
+  staff
+}
+
+enum SocialAccountStatus {
+  active
+  revoked
+  error
+}
+
+enum PostStatus {
+  draft
+  scheduled
+  publishing
+  published
+  failed
+  partial
+}
+
+enum PostPlatformVariantStatus {
+  pending
+  publishing
+  published
+  failed
+}
+
+model Business {
+  id                  String   @id @default(cuid())
+  name                String
+  telegramOwnerUserId BigInt   @map("telegram_owner_user_id")
+  timezone            String
+  brandColors         Json?    @map("brand_colors")
+  logoAssetUrl         String?  @map("logo_asset_url")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  members          BusinessMember[]
+  socialAccounts   SocialAccount[]
+  oauthStates      OAuthState[]
+  posts            Post[]
+
+  @@map("businesses")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  telegramUserId BigInt   @unique @map("telegram_user_id")
+  username       String?
+  firstName      String?  @map("first_name")
+  photoUrl       String?  @map("photo_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  memberships BusinessMember[]
+  oauthStates OAuthState[]
+
+  @@map("users")
+}
+
+model BusinessMember {
+  businessId String             @map("business_id")
+  userId     String             @map("user_id")
+  role       BusinessMemberRole
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([businessId, userId])
+  @@map("business_members")
+}
+
+model SocialAccount {
+  id                   String              @id @default(cuid())
+  businessId           String              @map("business_id")
+  platform             Platform
+  externalAccountId    String              @map("external_account_id")
+  accessTokenEncrypted String              @map("access_token_encrypted")
+  tokenExpiresAt       DateTime?           @map("token_expires_at")
+  scopes               String[]
+  status               SocialAccountStatus @default(active)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, platform, externalAccountId])
+  @@map("social_accounts")
+}
+
+model OAuthState {
+  id         String    @id @default(cuid())
+  businessId String    @map("business_id")
+  userId     String    @map("user_id")
+  platform   Platform
+  stateToken String    @unique @map("state_token")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("oauth_states")
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  businessId    String     @map("business_id")
+  status        PostStatus @default(draft)
+  captionMaster String?    @map("caption_master")
+  // Reserved for the future `products` table (not created yet) — see PLAN.md.
+  productId     String?    @map("product_id")
+  scheduledAt   DateTime?  @map("scheduled_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  business         Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sourceAssets     PostSourceAsset[]
+  platformVariants PostPlatformVariant[]
+
+  @@map("posts")
+}
+
+model PostSourceAsset {
+  id          String   @id @default(cuid())
+  postId      String   @map("post_id")
+  rawUrl      String   @map("raw_url")
+  productName String?  @map("product_name")
+  price       Decimal? @db.Decimal(12, 2)
+  description String?
+  orderIndex  Int      @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_source_assets")
+}
+
+model PostPlatformVariant {
+  id                String                    @id @default(cuid())
+  postId            String                    @map("post_id")
+  platform          Platform
+  variantStatus     PostPlatformVariantStatus @default(pending) @map("variant_status")
+  captionText       String?                   @map("caption_text")
+  hashtags          String[]
+  mediaUrls         String[]                  @map("media_urls")
+  externalPostId    String?                   @map("external_post_id")
+  externalPermalink String?                   @map("external_permalink")
+  errorMessage      String?                   @map("error_message")
+  retryCount        Int                       @default(0) @map("retry_count")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, platform])
+  @@map("post_platform_variants")
 }

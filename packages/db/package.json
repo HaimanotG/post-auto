@@ -7,11 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate": "prisma generate --allow-no-models",
+    "generate": "prisma generate",
     "build": "pnpm run generate && tsc -p tsconfig.build.json",
     "typecheck": "pnpm run generate && tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "pnpm run generate && vitest run"
+    "test": "pnpm run generate && vitest run",
+    "migrate:dev": "prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0"
