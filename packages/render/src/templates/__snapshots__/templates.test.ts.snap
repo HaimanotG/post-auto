@@ -1,0 +1,562 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`slide templates > CarouselCoverSlide returns a stable tree for a given set of props 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "position": "absolute",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "Selam Boutique",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 28,
+                  "fontWeight": 600,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
+                "children": [
+                  {
+                    "props": {
+                      "children": "1 / 4",
+                      "style": {
+                        "color": "#ffffff",
+                        "display": "flex",
+                        "fontSize": 24,
+                        "fontWeight": 700,
+                      },
+                    },
+                    "type": "div",
+                  },
+                ],
+                "style": {
+                  "backgroundColor": "#d1495b",
+                  "borderRadius": 999,
+                  "display": "flex",
+                  "paddingBottom": 10,
+                  "paddingLeft": 20,
+                  "paddingRight": 20,
+                  "paddingTop": 10,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "display": "flex",
+            "justifyContent": "space-between",
+            "left": 0,
+            "padding": "40px",
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+        },
+        "type": "div",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "New Arrivals This Week",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 60,
+                  "fontWeight": 700,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "backgroundColor": "rgba(0, 0, 0, 0.55)",
+            "bottom": 0,
+            "display": "flex",
+            "left": 0,
+            "padding": "48px",
+            "position": "absolute",
+            "right": 0,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#000000",
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
+exports[`slide templates > CarouselDetailSlide omits the caption bar when no caption is given 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "position": "absolute",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": [
+                  {
+                    "props": {
+                      "children": "3 / 4",
+                      "style": {
+                        "color": "#ffffff",
+                        "display": "flex",
+                        "fontSize": 24,
+                        "fontWeight": 700,
+                      },
+                    },
+                    "type": "div",
+                  },
+                ],
+                "style": {
+                  "backgroundColor": "#d1495b",
+                  "borderRadius": 999,
+                  "display": "flex",
+                  "paddingBottom": 10,
+                  "paddingLeft": 20,
+                  "paddingRight": 20,
+                  "paddingTop": 10,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "display": "flex",
+            "padding": "40px",
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#000000",
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
+exports[`slide templates > CarouselDetailSlide returns a stable tree for a given set of props 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "position": "absolute",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": [
+                  {
+                    "props": {
+                      "children": "2 / 4",
+                      "style": {
+                        "color": "#ffffff",
+                        "display": "flex",
+                        "fontSize": 24,
+                        "fontWeight": 700,
+                      },
+                    },
+                    "type": "div",
+                  },
+                ],
+                "style": {
+                  "backgroundColor": "#d1495b",
+                  "borderRadius": 999,
+                  "display": "flex",
+                  "paddingBottom": 10,
+                  "paddingLeft": 20,
+                  "paddingRight": 20,
+                  "paddingTop": 10,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "display": "flex",
+            "padding": "40px",
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+        },
+        "type": "div",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "Available in three colors",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 40,
+                  "fontWeight": 600,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "backgroundColor": "rgba(0, 0, 0, 0.55)",
+            "bottom": 0,
+            "display": "flex",
+            "left": 0,
+            "padding": "48px",
+            "position": "absolute",
+            "right": 0,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#000000",
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
+exports[`slide templates > PriceHighlightSlide returns a stable tree for a given set of props 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "Selam Boutique",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 32,
+                  "fontWeight": 600,
+                  "opacity": 0.9,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
+                "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+                "style": {
+                  "borderRadius": 16,
+                  "height": 120,
+                  "objectFit": "cover",
+                  "width": 120,
+                },
+              },
+              "type": "img",
+            },
+          ],
+          "style": {
+            "alignItems": "center",
+            "display": "flex",
+            "justifyContent": "space-between",
+          },
+        },
+        "type": "div",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "ETB 850",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 128,
+                  "fontWeight": 800,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
+                "children": "Handwoven Scarf",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 44,
+                  "marginTop": 24,
+                  "opacity": 0.95,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "alignItems": "center",
+            "display": "flex",
+            "flex": 1,
+            "flexDirection": "column",
+            "justifyContent": "center",
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#d1495b",
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+      "justifyContent": "space-between",
+      "padding": "56px",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
+exports[`slide templates > SingleProductSlide omits the price node when no price is given 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "position": "absolute",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "Selam Boutique",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 28,
+                  "marginBottom": 12,
+                  "opacity": 0.85,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
+                "children": [
+                  {
+                    "props": {
+                      "children": "Handwoven Scarf",
+                      "style": {
+                        "color": "#ffffff",
+                        "display": "flex",
+                        "fontSize": 56,
+                        "fontWeight": 700,
+                      },
+                    },
+                    "type": "div",
+                  },
+                ],
+                "style": {
+                  "alignItems": "flex-end",
+                  "display": "flex",
+                  "justifyContent": "space-between",
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "backgroundColor": "rgba(0, 0, 0, 0.55)",
+            "bottom": 0,
+            "display": "flex",
+            "flexDirection": "column",
+            "left": 0,
+            "padding": "48px",
+            "position": "absolute",
+            "right": 0,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#000000",
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
+exports[`slide templates > SingleProductSlide returns a stable tree for a given set of props 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "position": "absolute",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "Selam Boutique",
+                "style": {
+                  "color": "#ffffff",
+                  "display": "flex",
+                  "fontSize": 28,
+                  "marginBottom": 12,
+                  "opacity": 0.85,
+                },
+              },
+              "type": "div",
+            },
+            {
+              "props": {
+                "children": [
+                  {
+                    "props": {
+                      "children": "Handwoven Scarf",
+                      "style": {
+                        "color": "#ffffff",
+                        "display": "flex",
+                        "fontSize": 56,
+                        "fontWeight": 700,
+                      },
+                    },
+                    "type": "div",
+                  },
+                  {
+                    "props": {
+                      "children": "ETB 850",
+                      "style": {
+                        "color": "#d1495b",
+                        "display": "flex",
+                        "fontSize": 48,
+                        "fontWeight": 700,
+                      },
+                    },
+                    "type": "div",
+                  },
+                ],
+                "style": {
+                  "alignItems": "flex-end",
+                  "display": "flex",
+                  "justifyContent": "space-between",
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "backgroundColor": "rgba(0, 0, 0, 0.55)",
+            "bottom": 0,
+            "display": "flex",
+            "flexDirection": "column",
+            "left": 0,
+            "padding": "48px",
+            "position": "absolute",
+            "right": 0,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#000000",
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
