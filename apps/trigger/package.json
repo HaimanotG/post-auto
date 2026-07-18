@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@postauto/db": "workspace:*",
+    "@postauto/render": "workspace:*",
     "@postauto/shared": "workspace:*",
     "@postauto/social": "workspace:*",
     "@trigger.dev/sdk": "^3.3.17",

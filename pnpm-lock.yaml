@@ -121,6 +121,9 @@ importers:
       '@postauto/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@postauto/render':
+        specifier: workspace:*
+        version: link:../../packages/render
       '@postauto/shared':
         specifier: workspace:*
         version: link:../../packages/shared
