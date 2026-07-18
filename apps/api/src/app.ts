@@ -13,6 +13,8 @@ export interface BuildAppOptions {
   metaAppSecret: string;
   tokenEncryptionKey: string;
   baseUrl: string;
+  /** Used to build the t.me/<bot>?startapp=oauth_success deep link on the OAuth callback's "return to Telegram" screen. */
+  telegramBotUsername?: string;
   /** Injectable for tests; forwarded to registerOAuthRoutes. */
   graphClient?: OAuthRoutesOptions["graphClient"];
   threadsFetchImpl?: OAuthRoutesOptions["threadsFetchImpl"];
@@ -54,6 +56,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     metaAppSecret: options.metaAppSecret,
     tokenEncryptionKey: options.tokenEncryptionKey,
     baseUrl: options.baseUrl,
+    telegramBotUsername: options.telegramBotUsername,
     graphClient: options.graphClient,
     threadsFetchImpl: options.threadsFetchImpl,
     now: options.now,

@@ -16,8 +16,10 @@ export interface TelegramWebAppUser {
 
 export interface TelegramWebApp {
   initData: string;
-  initDataUnsafe: { user?: TelegramWebAppUser };
+  initDataUnsafe: { user?: TelegramWebAppUser; start_param?: string };
   ready: () => void;
+  /** Opens a URL in Telegram's external browser rather than an in-app WebView. */
+  openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
 }
 
 declare global {

@@ -12,6 +12,7 @@ async function main(): Promise<void> {
     metaAppSecret: env.META_APP_SECRET,
     tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY,
     baseUrl: env.API_BASE_URL,
+    telegramBotUsername: env.TELEGRAM_BOT_USERNAME,
   });
 
   await app.listen({ port: env.PORT, host: "0.0.0.0" });

@@ -115,10 +115,64 @@ export interface OAuthRoutesOptions {
   threadsFetchImpl?: typeof fetch;
   /** Injectable for tests. */
   now?: () => Date;
+  /** Used to build the t.me/<bot>?startapp=oauth_success deep link on the "return to Telegram" screen. */
+  telegramBotUsername?: string;
 }
 
 function buildRedirectUri(baseUrl: string, platform: OAuthInitiablePlatform): string {
   return `${baseUrl.replace(/\/+$/, "")}/oauth/${platform}/callback`;
+}
+
+/**
+ * A WebView can't reliably postMessage back to the mini app after an
+ * external-browser OAuth redirect (see PLAN.md's "Meta Graph API
+ * integration" section), so the callback -- when hit by a real browser
+ * navigation rather than a JSON API client -- renders a static "return to
+ * Telegram" page with a t.me/<bot>?startapp=oauth_success deep link. The
+ * mini app relaunches from that deep link and polls GET /oauth/status.
+ */
+function wantsHtmlResponse(request: FastifyRequest): boolean {
+  const accept = request.headers.accept;
+  return typeof accept === "string" && accept.includes("text/html");
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
+function renderReturnToTelegramHtml(params: { connected: boolean; message: string; botUsername?: string }): string {
+  const { connected, message, botUsername } = params;
+  const deepLink = botUsername ? `https://t.me/${botUsername}?startapp=oauth_success` : undefined;
+  const returnAction = deepLink
+    ? `<p><a href="${escapeHtml(deepLink)}">Return to Telegram</a></p>`
+    : `<p>Return to Telegram and reopen PostAuto.</p>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${connected ? "Connected" : "Connection failed"}</title>
+</head>
+<body>
+<h1>${connected ? "You're connected!" : "Connection failed"}</h1>
+<p>${escapeHtml(message)}</p>
+${returnAction}
+</body>
+</html>`;
 }
 
 /**
@@ -234,7 +288,14 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
     await options.prisma.oAuthState.update({ where: { id: state.id }, data: { consumedAt: currentTime } });
 
     if (query.error) {
-      return { connected: false, error: query.error_description ?? query.error };
+      const message = query.error_description ?? query.error ?? "Connection failed";
+      if (wantsHtmlResponse(request)) {
+        await reply.type("text/html").send(
+          renderReturnToTelegramHtml({ connected: false, message, botUsername: options.telegramBotUsername }),
+        );
+        return;
+      }
+      return { connected: false, error: message };
     }
     if (!query.code) {
       await reply.code(400).send({ error: "Missing code parameter" });
@@ -314,6 +375,16 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
           }
         }
 
+        if (wantsHtmlResponse(request)) {
+          await reply.type("text/html").send(
+            renderReturnToTelegramHtml({
+              connected: true,
+              message: `Connected ${pages.length} Facebook Page${pages.length === 1 ? "" : "s"}.`,
+              botUsername: options.telegramBotUsername,
+            }),
+          );
+          return;
+        }
         return { connected: true, platform, pageCount: pages.length };
       }
 
@@ -349,10 +420,28 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
         },
       });
 
+      if (wantsHtmlResponse(request)) {
+        await reply.type("text/html").send(
+          renderReturnToTelegramHtml({
+            connected: true,
+            message: "Connected your Threads account.",
+            botUsername: options.telegramBotUsername,
+          }),
+        );
+        return;
+      }
       return { connected: true, platform };
     } catch (error) {
       request.log.error(error);
-      await reply.code(502).send({ connected: false, error: "Failed to complete OAuth token exchange" });
+      const message = "Failed to complete OAuth token exchange";
+      if (wantsHtmlResponse(request)) {
+        await reply
+          .code(502)
+          .type("text/html")
+          .send(renderReturnToTelegramHtml({ connected: false, message, botUsername: options.telegramBotUsername }));
+        return;
+      }
+      await reply.code(502).send({ connected: false, error: message });
       return;
     }
   });

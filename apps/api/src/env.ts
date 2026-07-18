@@ -4,6 +4,8 @@ import { z } from "zod";
 export const apiEnvSchema = baseEnvSchema.extend({
   PORT: z.coerce.number().int().positive().default(3000),
   TELEGRAM_BOT_TOKEN: z.string().min(1),
+  /** Used to build the t.me/<bot>?startapp=... deep link on the OAuth "return to Telegram" screen. */
+  TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),
   JWT_SECRET: z.string().min(1),
   META_APP_ID: z.string().min(1),
   META_APP_SECRET: z.string().min(1),

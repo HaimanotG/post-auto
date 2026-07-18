@@ -28,6 +28,7 @@ async function buildFixtureApp(prismaOverrides: Parameters<typeof createFixtureP
     metaAppSecret: "meta-app-secret",
     tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
     baseUrl: FIXTURE_BASE_URL,
+    telegramBotUsername: "postauto_bot",
     graphClient,
     threadsFetchImpl,
   });
@@ -380,6 +381,143 @@ describe("GET /oauth/:platform/callback", () => {
 
     expect(response.statusCode).toBe(502);
     expect(socialAccountUpsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /oauth/:platform/callback (return-to-Telegram HTML screen)", () => {
+  let app: FastifyInstance;
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it("renders an HTML success screen with a t.me deep link when the request accepts text/html", async () => {
+    server.use(
+      http.get(`${GRAPH_BASE_URL}/v21.0/oauth/access_token`, ({ request }) => {
+        const url = new URL(request.url);
+        if (url.searchParams.get("grant_type") === "fb_exchange_token") {
+          return HttpResponse.json({ access_token: "long-lived-user-token", token_type: "bearer", expires_in: 5_184_000 });
+        }
+        return HttpResponse.json({ access_token: "short-lived-user-token", token_type: "bearer", expires_in: 3600 });
+      }),
+      http.get(`${GRAPH_BASE_URL}/v21.0/me/accounts`, () =>
+        HttpResponse.json({ data: [{ id: "page-1", name: "Page One", access_token: "page-1-access-token" }] }),
+      ),
+    );
+
+    ({ app } = await buildFixtureApp({
+      oAuthState: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "state_1",
+          businessId: "biz_1",
+          userId: "user_1",
+          platform: "facebook_page",
+          consumedAt: null,
+          createdAt: new Date(),
+        }),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+      socialAccount: { upsert: vi.fn().mockResolvedValue(undefined) },
+    }));
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/oauth/facebook_page/callback?code=auth-code&state=valid-token",
+      headers: { accept: "text/html" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain("text/html");
+    expect(response.body).toContain("https://t.me/postauto_bot?startapp=oauth_success");
+    expect(response.body).toContain("You're connected!");
+  });
+
+  it("renders an HTML denial screen when Meta redirects back with an error", async () => {
+    ({ app } = await buildFixtureApp({
+      oAuthState: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "state_1",
+          businessId: "biz_1",
+          userId: "user_1",
+          platform: "facebook_page",
+          consumedAt: null,
+          createdAt: new Date(),
+        }),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    }));
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/oauth/facebook_page/callback?state=valid-token&error=access_denied&error_description=User+denied",
+      headers: { accept: "text/html" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain("text/html");
+    expect(response.body).toContain("Connection failed");
+    expect(response.body).toContain("User denied");
+    expect(response.body).toContain("https://t.me/postauto_bot?startapp=oauth_success");
+  });
+
+  it("falls back to a generic return-to-Telegram message when no bot username is configured", async () => {
+    const prisma = createFixturePrismaStore({
+      oAuthState: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "state_1",
+          businessId: "biz_1",
+          userId: "user_1",
+          platform: "facebook_page",
+          consumedAt: null,
+          createdAt: new Date(),
+        }),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    app = await buildApp({
+      prisma,
+      telegramBotToken: "fixture-bot-token",
+      jwtSecret: FIXTURE_JWT_SECRET,
+      metaAppId: "meta-app-id",
+      metaAppSecret: "meta-app-secret",
+      tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
+      baseUrl: FIXTURE_BASE_URL,
+    });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/oauth/facebook_page/callback?state=valid-token&error=access_denied",
+      headers: { accept: "text/html" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).not.toContain("t.me/");
+    expect(response.body).toContain("Return to Telegram and reopen PostAuto.");
+  });
+
+  it("still returns JSON when the request does not accept text/html", async () => {
+    ({ app } = await buildFixtureApp({
+      oAuthState: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "state_1",
+          businessId: "biz_1",
+          userId: "user_1",
+          platform: "facebook_page",
+          consumedAt: null,
+          createdAt: new Date(),
+        }),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    }));
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/oauth/facebook_page/callback?state=valid-token&error=access_denied&error_description=User+denied",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ connected: false, error: "User denied" });
   });
 });
 
