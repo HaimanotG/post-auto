@@ -12,10 +12,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "fastify-raw-body": "^5.0.0",
+    "@fastify/jwt": "^10.2.0",
     "@postauto/db": "workspace:*",
     "@postauto/shared": "workspace:*",
     "fastify": "^5.2.0",
+    "fastify-raw-body": "^5.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

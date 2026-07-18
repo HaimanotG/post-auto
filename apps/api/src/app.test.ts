@@ -1,12 +1,16 @@
 import type { FastifyInstance } from "fastify";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "./app.js";
 
 describe("GET /health", () => {
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    app = await buildApp();
+    app = await buildApp({
+      prisma: { user: { upsert: vi.fn() } },
+      telegramBotToken: "fixture-bot-token",
+      jwtSecret: "fixture-jwt-secret",
+    });
   });
 
   afterEach(async () => {
