@@ -57,3 +57,10 @@ Summary: Created pnpm-workspace.yaml (apps/*, packages/*), root package.json (pr
 Credential gaps: none (not credential_gated).
 ---
 
+---
+[iteration 8] task_id: m0-08 (CI workflow: typecheck/lint/test)
+Result: Task Complete
+Summary: Created .github/workflows/ci.yml — a single `ci` job on push-to-main and pull_request: actions/checkout@v4, pnpm/action-setup@v4 (reads the pinned `packageManager: pnpm@9.15.0` field from root package.json, no explicit version input needed), actions/setup-node@v4 (node-version-file: .node-version, cache: pnpm), `pnpm install --frozen-lockfile`, then three steps running `pnpm turbo typecheck`, `pnpm turbo lint`, `pnpm turbo test` (matches the task's exact spec; root package.json's existing `typecheck`/`lint`/`test` scripts already delegate to `turbo run <task>`, so `pnpm run typecheck|lint|test` and `pnpm turbo typecheck|lint|test` are equivalent — used the turbo-prefixed form per the task description). No caching/env-var setup needed beyond pnpm's own store cache: packages/db's generate/build/typecheck/test scripts already run `prisma generate --allow-no-models` internally (established in m0-04), so Prisma client generation happens automatically in CI without a live DATABASE_URL. Verified locally by running the exact three commands from a clean `pnpm install --frozen-lockfile`: typecheck (6/6 packages, tsc clean including packages/db's prisma generate step), lint (6/6 packages, 0 errors — 2 pre-existing react-refresh warnings in apps/miniapp/src/routes.tsx noted in iteration 7, not new), test (6/6 packages, 14/14 vitest tests passing: trigger 2, shared 5, db 1, api 1, miniapp 5). Set m0-08 "passes": true in prd.json. All of M0 (m0-01 through m0-08) is now complete.
+Credential gaps: none (not credential_gated). The workflow itself needs no secrets since every workspace package's typecheck/lint/test scripts are designed to run without live DATABASE_URL/TRIGGER_SECRET_KEY/etc (per the credential_gated tasks' own mock-first policy) — nothing further to supply for CI to go green on GitHub once pushed.
+---
+
