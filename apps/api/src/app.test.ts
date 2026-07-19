@@ -13,6 +13,7 @@ describe("GET /health", () => {
       jwtSecret: "fixture-jwt-secret",
       metaAppId: "fixture-meta-app-id",
       metaAppSecret: "fixture-meta-app-secret",
+      metaWebhookVerifyToken: "fixture-webhook-verify-token",
       tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
       baseUrl: "https://api.fixture.test",
     });

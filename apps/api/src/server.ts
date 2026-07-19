@@ -10,6 +10,7 @@ async function main(): Promise<void> {
     jwtSecret: env.JWT_SECRET,
     metaAppId: env.META_APP_ID,
     metaAppSecret: env.META_APP_SECRET,
+    metaWebhookVerifyToken: env.META_WEBHOOK_VERIFY_TOKEN,
     tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY,
     baseUrl: env.API_BASE_URL,
     telegramBotUsername: env.TELEGRAM_BOT_USERNAME,

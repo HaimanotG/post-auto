@@ -29,6 +29,9 @@ importers:
       '@postauto/social':
         specifier: workspace:*
         version: link:../../packages/social
+      '@trigger.dev/sdk':
+        specifier: ^3.3.17
+        version: 3.3.17(zod@3.25.76)
       fastify:
         specifier: ^5.2.0
         version: 5.10.0

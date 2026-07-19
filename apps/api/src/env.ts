@@ -9,6 +9,8 @@ export const apiEnvSchema = baseEnvSchema.extend({
   JWT_SECRET: z.string().min(1),
   META_APP_ID: z.string().min(1),
   META_APP_SECRET: z.string().min(1),
+  /** Arbitrary string configured in the Meta App Dashboard's webhook subscription; echoed back during the GET /webhooks/meta verification handshake. */
+  META_WEBHOOK_VERIFY_TOKEN: z.string().min(1),
   TOKEN_ENCRYPTION_KEY: z
     .string()
     .regex(/^[0-9a-f]{64}$/i, "must be 32 raw bytes hex-encoded (64 hex chars) — generate with `openssl rand -hex 32`"),

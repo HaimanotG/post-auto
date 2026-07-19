@@ -26,6 +26,7 @@ async function buildFixtureApp(prismaOverrides: Parameters<typeof createFixtureP
     jwtSecret: FIXTURE_JWT_SECRET,
     metaAppId: "meta-app-id",
     metaAppSecret: "meta-app-secret",
+    metaWebhookVerifyToken: "meta-webhook-verify-token",
     tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
     baseUrl: FIXTURE_BASE_URL,
     telegramBotUsername: "postauto_bot",
@@ -326,6 +327,7 @@ describe("GET /oauth/:platform/callback", () => {
       jwtSecret: FIXTURE_JWT_SECRET,
       metaAppId: "meta-app-id",
       metaAppSecret: "meta-app-secret",
+      metaWebhookVerifyToken: "meta-webhook-verify-token",
       tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
       baseUrl: FIXTURE_BASE_URL,
       threadsFetchImpl,
@@ -481,6 +483,7 @@ describe("GET /oauth/:platform/callback (return-to-Telegram HTML screen)", () =>
       jwtSecret: FIXTURE_JWT_SECRET,
       metaAppId: "meta-app-id",
       metaAppSecret: "meta-app-secret",
+      metaWebhookVerifyToken: "meta-webhook-verify-token",
       tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
       baseUrl: FIXTURE_BASE_URL,
     });

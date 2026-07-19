@@ -53,6 +53,7 @@ describe("POST /auth/telegram", () => {
       jwtSecret: FIXTURE_JWT_SECRET,
       metaAppId: "fixture-meta-app-id",
       metaAppSecret: "fixture-meta-app-secret",
+      metaWebhookVerifyToken: "fixture-webhook-verify-token",
       tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
       baseUrl: "https://api.fixture.test",
     });
