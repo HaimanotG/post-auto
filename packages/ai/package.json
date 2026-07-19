@@ -1,0 +1,26 @@
+{
+  "name": "@postauto/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@langchain/anthropic": "^0.3.13",
+    "@langchain/core": "^0.3.30",
+    "@langchain/openai": "^0.3.17"
+  },
+  "devDependencies": {
+    "@postauto/config": "workspace:*",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
