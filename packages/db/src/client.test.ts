@@ -18,4 +18,9 @@ describe("PrismaClient", () => {
     expect(client.postSourceAsset).toBeDefined();
     expect(client.postPlatformVariant).toBeDefined();
   });
+
+  it("exposes the renderedSlide model delegate (m2-08)", () => {
+    const client = new PrismaClient();
+    expect(client.renderedSlide).toBeDefined();
+  });
 });

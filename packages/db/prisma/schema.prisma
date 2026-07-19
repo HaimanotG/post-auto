@@ -1,6 +1,6 @@
-// M1 core tables per PLAN.md's data model section. Remaining tables
-// (rendered_slides, inbox_messages, ai_reply_decisions, webhook_events,
-// engagement_snapshots) land in later migrations (M2-M4).
+// M1 core tables plus rendered_slides (M2) per PLAN.md's data model section.
+// Remaining tables (inbox_messages, ai_reply_decisions, webhook_events,
+// engagement_snapshots) land in later migrations (M3-M4).
 generator client {
   provider = "prisma-client-js"
 }
@@ -136,6 +136,7 @@ model Post {
   business         Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
   sourceAssets     PostSourceAsset[]
   platformVariants PostPlatformVariant[]
+  renderedSlides   RenderedSlide[]
 
   @@map("posts")
 }
@@ -174,4 +175,24 @@ model PostPlatformVariant {
 
   @@unique([postId, platform])
   @@map("post_platform_variants")
+}
+
+model RenderedSlide {
+  id         String   @id @default(cuid())
+  postId     String   @map("post_id")
+  slideIndex Int      @map("slide_index")
+  // The satori template component id (e.g. "single-product-slide"), not the
+  // Platform enum -- kept as a free-form string since new templates land
+  // without a migration (see apps/trigger/tasks/render-slides.ts).
+  templateId String   @map("template_id")
+  platform   Platform
+  width      Int
+  height     Int
+  fileUrl    String   @map("file_url")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("rendered_slides")
 }
