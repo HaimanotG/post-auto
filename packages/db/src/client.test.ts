@@ -23,4 +23,11 @@ describe("PrismaClient", () => {
     const client = new PrismaClient();
     expect(client.renderedSlide).toBeDefined();
   });
+
+  it("exposes the inboxMessage, aiReplyDecision, and webhookEvent model delegates (m3-01)", () => {
+    const client = new PrismaClient();
+    expect(client.inboxMessage).toBeDefined();
+    expect(client.aiReplyDecision).toBeDefined();
+    expect(client.webhookEvent).toBeDefined();
+  });
 });

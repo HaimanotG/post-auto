@@ -1,6 +1,6 @@
-// M1 core tables plus rendered_slides (M2) per PLAN.md's data model section.
-// Remaining tables (inbox_messages, ai_reply_decisions, webhook_events,
-// engagement_snapshots) land in later migrations (M3-M4).
+// M1 core tables plus rendered_slides (M2) and inbox_messages/ai_reply_decisions/
+// webhook_events (M3) per PLAN.md's data model section.
+// Remaining tables (engagement_snapshots) land in a later migration (M4).
 generator client {
   provider = "prisma-client-js"
 }
@@ -43,20 +43,48 @@ enum PostPlatformVariantStatus {
   failed
 }
 
+enum InboxMessageType {
+  comment
+  mention
+  dm
+}
+
+enum InboxMessageStatus {
+  new
+  auto_replied
+  needs_attention
+  resolved
+  ignored
+}
+
+enum AiReplyDecisionType {
+  auto_reply
+  escalate
+  ignore
+}
+
+enum WebhookEventProcessingStatus {
+  received
+  processing
+  processed
+  failed
+}
+
 model Business {
   id                  String   @id @default(cuid())
   name                String
   telegramOwnerUserId BigInt   @map("telegram_owner_user_id")
   timezone            String
   brandColors         Json?    @map("brand_colors")
-  logoAssetUrl         String?  @map("logo_asset_url")
+  logoAssetUrl        String?  @map("logo_asset_url")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  members          BusinessMember[]
-  socialAccounts   SocialAccount[]
-  oauthStates      OAuthState[]
-  posts            Post[]
+  members        BusinessMember[]
+  socialAccounts SocialAccount[]
+  oauthStates    OAuthState[]
+  posts          Post[]
+  inboxMessages  InboxMessage[]
 
   @@map("businesses")
 }
@@ -101,7 +129,8 @@ model SocialAccount {
   createdAt            DateTime            @default(now()) @map("created_at")
   updatedAt            DateTime            @updatedAt @map("updated_at")
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  inboxMessages InboxMessage[]
 
   @@unique([businessId, platform, externalAccountId])
   @@map("social_accounts")
@@ -137,6 +166,7 @@ model Post {
   sourceAssets     PostSourceAsset[]
   platformVariants PostPlatformVariant[]
   renderedSlides   RenderedSlide[]
+  inboxMessages    InboxMessage[]
 
   @@map("posts")
 }
@@ -195,4 +225,66 @@ model RenderedSlide {
 
   @@index([postId])
   @@map("rendered_slides")
+}
+
+model InboxMessage {
+  id                String             @id @default(cuid())
+  businessId        String             @map("business_id")
+  // Nullable: a webhook_events row can normalize into an inbox message even
+  // if the specific social_account it arrived on was since disconnected.
+  socialAccountId   String?            @map("social_account_id")
+  platform          Platform
+  type              InboxMessageType
+  externalMessageId String             @unique @map("external_message_id")
+  // Reserved link back to the post a comment/mention is attached to (nullable
+  // -- DMs and some mentions have no related post). See PLAN.md's future
+  // extension note: joins through posts.product_id for live price/stock.
+  relatedPostId     String?            @map("related_post_id")
+  senderExternalId  String             @map("sender_external_id")
+  senderName        String?            @map("sender_name")
+  senderUsername    String?            @map("sender_username")
+  body              String
+  status            InboxMessageStatus @default(new)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  socialAccount    SocialAccount?    @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  relatedPost      Post?             @relation(fields: [relatedPostId], references: [id], onDelete: SetNull)
+  aiReplyDecisions AiReplyDecision[]
+
+  @@index([businessId])
+  @@index([socialAccountId])
+  @@index([relatedPostId])
+  @@map("inbox_messages")
+}
+
+model AiReplyDecision {
+  id               String              @id @default(cuid())
+  inboxMessageId   String              @map("inbox_message_id")
+  modelUsed        String              @map("model_used")
+  intentClassified String              @map("intent_classified")
+  confidence       Float
+  decision         AiReplyDecisionType
+  replyText        String?             @map("reply_text")
+  reasoningSnippet String?             @map("reasoning_snippet")
+  createdAt        DateTime            @default(now()) @map("created_at")
+
+  inboxMessage InboxMessage @relation(fields: [inboxMessageId], references: [id], onDelete: Cascade)
+
+  @@index([inboxMessageId])
+  @@map("ai_reply_decisions")
+}
+
+model WebhookEvent {
+  id                 String                       @id @default(cuid())
+  platform           Platform
+  externalObjectType String                       @map("external_object_type")
+  rawPayload         Json                         @map("raw_payload")
+  processingStatus   WebhookEventProcessingStatus @default(received) @map("processing_status")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+
+  @@index([processingStatus])
+  @@map("webhook_events")
 }
