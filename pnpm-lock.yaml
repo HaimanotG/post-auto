@@ -164,6 +164,9 @@ importers:
       '@langchain/openai':
         specifier: ^0.3.17
         version: 0.3.17(@langchain/core@0.3.80(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.25.1(@opentelemetry/api@1.9.0))(openai@4.104.0(ws@8.21.1)(zod@3.25.76)))(ws@8.21.1)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@postauto/config':
         specifier: workspace:*
