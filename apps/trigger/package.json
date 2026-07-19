@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@postauto/ai": "workspace:*",
     "@postauto/db": "workspace:*",
     "@postauto/render": "workspace:*",
     "@postauto/shared": "workspace:*",

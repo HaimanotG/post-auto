@@ -121,6 +121,9 @@ importers:
 
   apps/trigger:
     dependencies:
+      '@postauto/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@postauto/db':
         specifier: workspace:*
         version: link:../../packages/db
