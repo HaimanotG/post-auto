@@ -1,3 +1,4 @@
+export * from "./eval/index.js";
 export * from "./model-router.js";
 export * from "./pipelines/intent-classification.js";
 export * from "./pipelines/reply-generation.js";
