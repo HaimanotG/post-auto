@@ -1,10 +1,11 @@
 import { vi } from "vitest";
+import type { AnalyticsStore } from "../routes/analytics.js";
 import type { TelegramUserStore } from "../middleware/telegram-init-data.js";
 import type { OAuthStore } from "../routes/oauth.js";
 import type { PostStore } from "../routes/posts.js";
 import type { WebhookEventStore } from "../routes/webhooks-meta.js";
 
-export type FixturePrismaStore = TelegramUserStore & OAuthStore & PostStore & WebhookEventStore;
+export type FixturePrismaStore = TelegramUserStore & OAuthStore & PostStore & WebhookEventStore & AnalyticsStore;
 
 /** 32 raw bytes hex-encoded (64 hex chars) — satisfies TOKEN_ENCRYPTION_KEY's shape for tests. */
 export const FIXTURE_TOKEN_ENCRYPTION_KEY = "0011223344556677889900112233445566778899001122334455667788990011";
@@ -23,6 +24,7 @@ export function createFixturePrismaStore(
     socialAccount?: Partial<FixturePrismaStore["socialAccount"]>;
     post?: Partial<FixturePrismaStore["post"]>;
     webhookEvent?: Partial<FixturePrismaStore["webhookEvent"]>;
+    postPlatformVariant?: Partial<FixturePrismaStore["postPlatformVariant"]>;
   } = {},
 ): FixturePrismaStore {
   return {
@@ -33,5 +35,6 @@ export function createFixturePrismaStore(
     socialAccount: { upsert: vi.fn(), findMany: vi.fn(), ...overrides.socialAccount },
     post: { create: vi.fn(), ...overrides.post },
     webhookEvent: { create: vi.fn().mockResolvedValue({ id: "webhook_event_1" }), ...overrides.webhookEvent },
+    postPlatformVariant: { findMany: vi.fn().mockResolvedValue([]), ...overrides.postPlatformVariant },
   } as FixturePrismaStore;
 }

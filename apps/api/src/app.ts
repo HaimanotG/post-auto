@@ -2,13 +2,14 @@ import fastifyJwt from "@fastify/jwt";
 import rawBody from "fastify-raw-body";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { TelegramUserStore } from "./middleware/telegram-init-data.js";
+import { registerAnalyticsRoutes, type AnalyticsStore } from "./routes/analytics.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerOAuthRoutes, type OAuthRoutesOptions, type OAuthStore } from "./routes/oauth.js";
 import { registerPostsRoutes, type PostStore } from "./routes/posts.js";
 import { registerWebhooksMetaRoutes, type WebhookEventStore, type WebhooksMetaRoutesOptions } from "./routes/webhooks-meta.js";
 
 export interface BuildAppOptions {
-  prisma: TelegramUserStore & OAuthStore & PostStore & WebhookEventStore;
+  prisma: TelegramUserStore & OAuthStore & PostStore & WebhookEventStore & AnalyticsStore;
   telegramBotToken: string;
   jwtSecret: string;
   metaAppId: string;
@@ -68,6 +69,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   registerPostsRoutes(app, { prisma: options.prisma });
+
+  registerAnalyticsRoutes(app, { prisma: options.prisma });
 
   registerWebhooksMetaRoutes(app, {
     prisma: options.prisma,
