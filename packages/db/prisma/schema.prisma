@@ -1,6 +1,6 @@
-// M1 core tables plus rendered_slides (M2) and inbox_messages/ai_reply_decisions/
-// webhook_events (M3) per PLAN.md's data model section.
-// Remaining tables (engagement_snapshots) land in a later migration (M4).
+// M1 core tables plus rendered_slides (M2), inbox_messages/ai_reply_decisions/
+// webhook_events (M3), and engagement_snapshots (M4) per PLAN.md's data model
+// section.
 generator client {
   provider = "prisma-client-js"
 }
@@ -201,7 +201,8 @@ model PostPlatformVariant {
   createdAt         DateTime                  @default(now()) @map("created_at")
   updatedAt         DateTime                  @updatedAt @map("updated_at")
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post                Post                 @relation(fields: [postId], references: [id], onDelete: Cascade)
+  engagementSnapshots EngagementSnapshot[]
 
   @@unique([postId, platform])
   @@map("post_platform_variants")
@@ -287,4 +288,21 @@ model WebhookEvent {
 
   @@index([processingStatus])
   @@map("webhook_events")
+}
+
+model EngagementSnapshot {
+  id                    String   @id @default(cuid())
+  postPlatformVariantId String   @map("post_platform_variant_id")
+  capturedAt            DateTime @map("captured_at")
+  likesCount            Int      @default(0) @map("likes_count")
+  commentsCount         Int      @default(0) @map("comments_count")
+  sharesCount           Int      @default(0) @map("shares_count")
+  reach                 Int      @default(0)
+  impressions           Int      @default(0)
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  postPlatformVariant PostPlatformVariant @relation(fields: [postPlatformVariantId], references: [id], onDelete: Cascade)
+
+  @@index([postPlatformVariantId, capturedAt])
+  @@map("engagement_snapshots")
 }

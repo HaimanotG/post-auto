@@ -30,4 +30,9 @@ describe("PrismaClient", () => {
     expect(client.aiReplyDecision).toBeDefined();
     expect(client.webhookEvent).toBeDefined();
   });
+
+  it("exposes the engagementSnapshot model delegate (m4-01)", () => {
+    const client = new PrismaClient();
+    expect(client.engagementSnapshot).toBeDefined();
+  });
 });
