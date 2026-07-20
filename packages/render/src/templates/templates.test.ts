@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { renderTreeToSvg } from "../render.js";
 import { CarouselCoverSlide } from "./CarouselCoverSlide.js";
 import { CarouselDetailSlide } from "./CarouselDetailSlide.js";
+import { MarketplacePhoto } from "./MarketplacePhoto.js";
 import { PriceHighlightSlide } from "./PriceHighlightSlide.js";
 import { SingleProductSlide } from "./SingleProductSlide.js";
 import type { SlideBusiness } from "./types.js";
@@ -78,6 +79,16 @@ describe("slide templates", () => {
     expect(tree).toMatchSnapshot();
   });
 
+  it("MarketplacePhoto returns a stable tree for a given set of props", () => {
+    const tree = MarketplacePhoto({ imageUrl: PIXEL_PNG_DATA_URI, price: "ETB 850" });
+    expect(tree).toMatchSnapshot();
+  });
+
+  it("MarketplacePhoto omits the price badge when no price is given", () => {
+    const tree = MarketplacePhoto({ imageUrl: PIXEL_PNG_DATA_URI });
+    expect(tree).toMatchSnapshot();
+  });
+
   it.each([
     ["SingleProductSlide", () => SingleProductSlide({ imageUrl: PIXEL_PNG_DATA_URI, productName: "Scarf", price: "ETB 850", business })],
     ["PriceHighlightSlide", () => PriceHighlightSlide({ price: "ETB 850", productName: "Scarf", business })],
@@ -86,6 +97,7 @@ describe("slide templates", () => {
       "CarouselDetailSlide",
       () => CarouselDetailSlide({ imageUrl: PIXEL_PNG_DATA_URI, slideIndex: 1, slideCount: 3, caption: "Detail", business }),
     ],
+    ["MarketplacePhoto", () => MarketplacePhoto({ imageUrl: PIXEL_PNG_DATA_URI, price: "ETB 850" })],
   ])("%s lays out into valid SVG through satori with real text and image nodes", async (_name, build) => {
     const fonts = await loadTestFont();
     const svg = await renderTreeToSvg(build(), { width: 1080, height: 1080, fonts });

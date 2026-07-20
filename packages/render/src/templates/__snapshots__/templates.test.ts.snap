@@ -286,6 +286,93 @@ exports[`slide templates > CarouselDetailSlide returns a stable tree for a given
 }
 `;
 
+exports[`slide templates > MarketplacePhoto omits the price badge when no price is given 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#ffffff",
+      "display": "flex",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
+exports[`slide templates > MarketplacePhoto returns a stable tree for a given set of props 1`] = `
+{
+  "props": {
+    "children": [
+      {
+        "props": {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          "style": {
+            "height": "100%",
+            "objectFit": "cover",
+            "width": "100%",
+          },
+        },
+        "type": "img",
+      },
+      {
+        "props": {
+          "children": [
+            {
+              "props": {
+                "children": "ETB 850",
+                "style": {
+                  "color": "#111111",
+                  "display": "flex",
+                  "fontSize": 40,
+                  "fontWeight": 700,
+                },
+              },
+              "type": "div",
+            },
+          ],
+          "style": {
+            "backgroundColor": "#ffffff",
+            "borderRadius": 12,
+            "bottom": 32,
+            "display": "flex",
+            "paddingBottom": 12,
+            "paddingLeft": 24,
+            "paddingRight": 24,
+            "paddingTop": 12,
+            "position": "absolute",
+            "right": 32,
+          },
+        },
+        "type": "div",
+      },
+    ],
+    "style": {
+      "backgroundColor": "#ffffff",
+      "display": "flex",
+      "height": "100%",
+      "position": "relative",
+      "width": "100%",
+    },
+  },
+  "type": "div",
+}
+`;
+
 exports[`slide templates > PriceHighlightSlide returns a stable tree for a given set of props 1`] = `
 {
   "props": {

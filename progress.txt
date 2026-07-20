@@ -296,3 +296,11 @@ Verified: `pnpm --filter @postauto/social test` (14 test files, 104 tests, 10 ne
 Credential gaps: none (not credential_gated) -- pure string/number formatting, no external calls.
 ---
 
+---
+[iteration 41] task_id: m5-02 (packages/render/templates/MarketplacePhoto.tsx)
+Result: Task Complete
+Summary: Added packages/render/src/templates/MarketplacePhoto.ts, a pure satori-tree template following the existing SingleProductSlide/PriceHighlightSlide pattern (plain object trees via templates/dom.ts's box/image/text helpers, no JSX). Unlike the other four M2 slide templates, MarketplacePhoto takes no SlideBusiness prop and renders no business name/logo/brand-color chrome at all -- per PLAN.md's Marketplace assist section the listing's seller identity already comes from the seller's own Facebook profile, so baking Postauto branding into the photo itself would be redundant/wrong for a "prepare, don't auto-post" handoff. Props are just { imageUrl, price? }: a full-bleed cover-fit image on a white background, with an optional small white rounded price badge in the bottom-right corner when a price is given (omitted entirely, not rendered empty, when absent -- matching SingleProductSlide's existing optional-price pattern). Exported from templates/index.ts alongside the other four templates. Tests added to templates/templates.test.ts: two new snapshot tests (with/without price) plus a new entry in the existing it.each real-satori-render table (renders through actual satori with the fixture Inter font + a 1x1 data-URI PNG, asserting valid SVG output at 1080x1080) -- same coverage shape every other template already gets, no new test infra needed.
+Verified: `pnpm --filter @postauto/render test` 29/29 passing (13 in templates.test.ts, up from 11; 2 new snapshots written clean), `pnpm --filter @postauto/render typecheck` clean, `pnpm --filter @postauto/render lint` clean, `pnpm --filter @postauto/render build` (tsc -p tsconfig.build.json) clean. Set m5-02 "passes": true in prd.json.
+Credential gaps: none (not credential_gated) -- pure template code, no external API or secret involved.
+---
+
