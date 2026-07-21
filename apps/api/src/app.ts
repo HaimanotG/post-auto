@@ -1,3 +1,4 @@
+import fastifyCors from "@fastify/cors";
 import fastifyJwt from "@fastify/jwt";
 import rawBody from "fastify-raw-body";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -20,6 +21,12 @@ export interface BuildAppOptions {
   baseUrl: string;
   /** Used to build the t.me/<bot>?startapp=oauth_success deep link on the OAuth callback's "return to Telegram" screen. */
   telegramBotUsername?: string;
+  /**
+   * Origins allowed to call this API cross-origin (the mini app frontend is
+   * served from a different origin than the API — Vercel vs. Railway).
+   * Defaults to the local Vite dev server origin when not provided.
+   */
+  corsOrigin?: string[];
   /** Injectable for tests; forwarded to registerOAuthRoutes. */
   graphClient?: OAuthRoutesOptions["graphClient"];
   threadsFetchImpl?: OAuthRoutesOptions["threadsFetchImpl"];
@@ -44,6 +51,12 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     global: true,
     encoding: "utf8",
     runFirst: true,
+  });
+
+  await app.register(fastifyCors, {
+    origin: options.corsOrigin ?? ["http://localhost:5173"],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-telegram-init-data"],
   });
 
   await app.register(fastifyJwt, { secret: options.jwtSecret });

@@ -2,7 +2,8 @@
 // webhook_events (M3), and engagement_snapshots (M4) per PLAN.md's data model
 // section.
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

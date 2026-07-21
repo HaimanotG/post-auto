@@ -15,6 +15,8 @@ export const apiEnvSchema = baseEnvSchema.extend({
     .string()
     .regex(/^[0-9a-f]{64}$/i, "must be 32 raw bytes hex-encoded (64 hex chars) — generate with `openssl rand -hex 32`"),
   API_BASE_URL: z.string().url(),
+  /** Comma-separated list of origins allowed to call this API cross-origin, e.g. the mini app's Vercel URL(s). */
+  MINIAPP_ORIGIN: z.string().min(1).optional(),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
