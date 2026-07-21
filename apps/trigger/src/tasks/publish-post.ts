@@ -6,7 +6,7 @@ import {
   type PublishPhotoParams,
   type PublishPhotoResult,
 } from "@postauto/social";
-import { task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk";
 import { prisma } from "@postauto/db";
 import { loadEnv } from "../env.js";
 

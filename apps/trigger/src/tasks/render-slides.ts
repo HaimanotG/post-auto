@@ -16,7 +16,7 @@ import {
   type SlideBusiness,
 } from "@postauto/render";
 import type { Platform as DbPlatform } from "@postauto/shared";
-import { task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk";
 
 export type SlideTemplateId = "single-product" | "price-highlight" | "carousel";
 

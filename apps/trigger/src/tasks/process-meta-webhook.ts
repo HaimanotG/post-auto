@@ -1,6 +1,6 @@
 import { prisma } from "@postauto/db";
 import type { Platform } from "@postauto/shared";
-import { task } from "@trigger.dev/sdk/v3";
+import { task } from "@trigger.dev/sdk";
 
 export type NormalizedInboxMessageType = "comment" | "mention" | "dm";
 

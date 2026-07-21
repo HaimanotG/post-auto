@@ -16,7 +16,7 @@ import {
   type ReplyGenerationResult,
 } from "@postauto/ai";
 import { prisma } from "@postauto/db";
-import { tasks, task } from "@trigger.dev/sdk/v3";
+import { tasks, task } from "@trigger.dev/sdk";
 
 export interface ClassifyAndReplyPayload {
   inboxMessageId: string;

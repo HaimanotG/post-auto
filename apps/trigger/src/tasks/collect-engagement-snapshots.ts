@@ -8,7 +8,7 @@ import {
   type EngagementMetrics,
 } from "@postauto/social";
 import { prisma } from "@postauto/db";
-import { schedules } from "@trigger.dev/sdk/v3";
+import { schedules } from "@trigger.dev/sdk";
 import { loadEnv } from "../env.js";
 
 /** Threads' Graph API lives on a different host than Facebook/Instagram (see packages/social/src/oauth.ts and threads/publish-post.ts). */
