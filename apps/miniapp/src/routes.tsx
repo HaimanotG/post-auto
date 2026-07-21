@@ -1,36 +1,10 @@
-import { Link, Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { AppShell } from "./app/AppShell";
+import { TabMarketplaceIcon } from "./app/icons";
 import { Dashboard } from "./features/analytics/Dashboard";
 import { PostComposer } from "./features/composer/PostComposer";
 import { InboxScreen } from "./features/inbox/InboxScreen";
 import { HomeScreen } from "./features/onboarding/HomeScreen";
-
-const NAV_ITEMS = [
-  { to: "/composer", label: "Composer" },
-  { to: "/inbox", label: "Inbox" },
-  { to: "/analytics", label: "Analytics" },
-  { to: "/marketplace", label: "Marketplace" },
-] as const;
-
-function RootLayout() {
-  return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <nav className="flex gap-4 border-b border-neutral-800 p-4">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            className="text-sm font-medium text-neutral-300 hover:text-white [&.active]:text-white"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <main className="p-4">
-        <Outlet />
-      </main>
-    </div>
-  );
-}
 
 /**
  * Marketplace listing prep has no data source yet: packages/social's
@@ -41,14 +15,19 @@ function RootLayout() {
  */
 function MarketplaceRouteStub() {
   return (
-    <div>
-      <h1 className="text-xl font-semibold">Marketplace</h1>
-      <p>Not available yet — nothing generates listing content for a post to prepare.</p>
+    <div className="flex flex-col items-center gap-3 px-7 pt-16 pb-7 text-center">
+      <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-pa-secondary-bg text-pa-link">
+        <TabMarketplaceIcon className="h-8 w-8" />
+      </div>
+      <h1 className="text-xl font-bold text-pa-text">Marketplace</h1>
+      <p className="max-w-[280px] text-[14.5px] leading-normal text-pa-hint">
+        Not available yet — nothing generates listing content for a post to prepare.
+      </p>
     </div>
   );
 }
 
-const rootRoute = createRootRoute({ component: RootLayout });
+const rootRoute = createRootRoute({ component: AppShell });
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,

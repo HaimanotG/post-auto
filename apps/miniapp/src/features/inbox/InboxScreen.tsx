@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../app/AuthGate";
+import { useSetHeader } from "../../app/HeaderContext";
 import { ConversationThread, type AiReplyDecisionSummary } from "./ConversationThread";
 import { InboxList, type InboxMessageSummary } from "./InboxList";
 
@@ -33,6 +34,12 @@ export function InboxScreen({ apiBaseUrl = DEFAULT_API_BASE_URL }: InboxScreenPr
   const [status, setStatus] = useState<Status>({ kind: "loading" });
   const [selectedMessageId, setSelectedMessageId] = useState<string>();
 
+  useSetHeader(
+    selectedMessageId
+      ? { title: "Conversation", onBack: () => setSelectedMessageId(undefined) }
+      : {},
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -63,23 +70,18 @@ export function InboxScreen({ apiBaseUrl = DEFAULT_API_BASE_URL }: InboxScreenPr
   }, [apiBaseUrl, token]);
 
   if (status.kind === "loading") {
-    return <div role="status">Loading inbox…</div>;
+    return <div role="status" className="px-4 py-6 text-center text-[14.5px] text-pa-hint">Loading inbox…</div>;
   }
 
   if (status.kind === "error") {
-    return <div role="alert">{status.message}</div>;
+    return <div role="alert" className="px-4 py-6 text-center text-[14.5px] text-pa-destructive">{status.message}</div>;
   }
 
   const selectedMessage = status.messages.find((message) => message.id === selectedMessageId) ?? null;
 
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-4">
-      <InboxList
-        messages={status.messages}
-        selectedMessageId={selectedMessageId}
-        onSelect={setSelectedMessageId}
-      />
-      <ConversationThread message={selectedMessage} decisions={selectedMessage?.decisions ?? []} />
-    </div>
-  );
+  if (selectedMessage) {
+    return <ConversationThread message={selectedMessage} decisions={selectedMessage.decisions} />;
+  }
+
+  return <InboxList messages={status.messages} selectedMessageId={selectedMessageId} onSelect={setSelectedMessageId} />;
 }

@@ -2,6 +2,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AuthGate } from "./app/AuthGate";
+import { ThemeProvider } from "./app/theme";
 import "./index.css";
 import { router } from "./routes";
 
@@ -12,8 +13,10 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <AuthGate>
-      <RouterProvider router={router} />
-    </AuthGate>
+    <ThemeProvider>
+      <AuthGate>
+        <RouterProvider router={router} />
+      </AuthGate>
+    </ThemeProvider>
   </StrictMode>,
 );

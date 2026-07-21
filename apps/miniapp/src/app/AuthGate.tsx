@@ -14,12 +14,26 @@ export interface TelegramWebAppUser {
   photo_url?: string;
 }
 
+export interface TelegramWebAppBackButton {
+  show: () => void;
+  hide: () => void;
+  onClick: (callback: () => void) => void;
+  offClick: (callback: () => void) => void;
+}
+
 export interface TelegramWebApp {
   initData: string;
   initDataUnsafe: { user?: TelegramWebAppUser; start_param?: string };
   ready: () => void;
   /** Opens a URL in Telegram's external browser rather than an in-app WebView. */
   openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
+  /** The Telegram client's active appearance; drives the mini app's own light/dark theme tokens. */
+  colorScheme?: "light" | "dark";
+  /** Subscribes to Telegram client events, notably "themeChanged" when colorScheme flips. */
+  onEvent?: (eventType: string, callback: () => void) => void;
+  offEvent?: (eventType: string, callback: () => void) => void;
+  /** Native hardware/gesture back control, shown when a screen has somewhere to go back to. */
+  BackButton?: TelegramWebAppBackButton;
 }
 
 declare global {
@@ -122,11 +136,19 @@ export function AuthGate({ children, apiBaseUrl = DEFAULT_API_BASE_URL }: AuthGa
   }, [apiBaseUrl]);
 
   if (status.kind === "loading") {
-    return <div role="status">Authenticating…</div>;
+    return (
+      <div role="status" className="flex min-h-screen items-center justify-center bg-pa-bg text-[14.5px] text-pa-hint">
+        Authenticating…
+      </div>
+    );
   }
 
   if (status.kind === "error") {
-    return <div role="alert">{status.message}</div>;
+    return (
+      <div role="alert" className="flex min-h-screen items-center justify-center bg-pa-bg px-6 text-center text-[14.5px] text-pa-destructive">
+        {status.message}
+      </div>
+    );
   }
 
   return <AuthContext.Provider value={status.auth}>{children}</AuthContext.Provider>;

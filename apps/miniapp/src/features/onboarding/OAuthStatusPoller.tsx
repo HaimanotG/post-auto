@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../app/AuthGate";
+import { Toast } from "../../app/Toast";
 
 const DEFAULT_API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
@@ -20,6 +21,8 @@ export interface OAuthStatusPollerProps {
   maxAttempts?: number;
   /** Injectable for tests; defaults to window.Telegram.WebApp.initDataUnsafe.start_param. */
   startParam?: string;
+  /** Notifies a parent (e.g. HomeScreen) once polling finds a connected account, so it can drop its own stale "not connected" state without a second fetch. */
+  onConnected?: (accounts: ConnectedSocialAccount[]) => void;
 }
 
 type PollState =
@@ -41,6 +44,7 @@ export function OAuthStatusPoller({
   pollIntervalMs = 2000,
   maxAttempts = 10,
   startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param,
+  onConnected,
 }: OAuthStatusPollerProps) {
   const { token } = useAuth();
   const isActive = startParam === "oauth_success";
@@ -67,6 +71,7 @@ export function OAuthStatusPoller({
 
         if (body.connected.length > 0) {
           setState({ kind: "connected", accounts: body.connected });
+          onConnected?.(body.connected);
           return;
         }
 
@@ -89,6 +94,7 @@ export function OAuthStatusPoller({
       cancelled = true;
       if (timeoutId) clearTimeout(timeoutId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, apiBaseUrl, token, pollIntervalMs, maxAttempts]);
 
   if (state.kind === "inactive") {
@@ -96,16 +102,16 @@ export function OAuthStatusPoller({
   }
 
   if (state.kind === "polling") {
-    return <div role="status">Checking connection…</div>;
+    return <Toast kind="status">Checking connection…</Toast>;
   }
 
   if (state.kind === "connected") {
-    return <div role="status">Connected {state.accounts.length} account(s).</div>;
+    return <Toast kind="status">Connected {state.accounts.length} account(s).</Toast>;
   }
 
   if (state.kind === "timed_out") {
-    return <div role="alert">Still waiting for the connection to complete. Try again from the mini app.</div>;
+    return <Toast kind="alert">Still waiting for the connection to complete. Try again from the mini app.</Toast>;
   }
 
-  return <div role="alert">{state.message}</div>;
+  return <Toast kind="alert">{state.message}</Toast>;
 }

@@ -50,12 +50,12 @@ describe("routes", () => {
   });
 
   it("renders the home screen with the Facebook connect button", async () => {
-    mockAuthenticatedFetch({});
+    mockAuthenticatedFetch({ "/oauth/status": () => new Response(JSON.stringify({ connected: [] }), { status: 200 }) });
 
     await renderRoute("/");
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "PostAuto" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Connect your business account" })).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: "Connect Facebook" })).toBeInTheDocument();
   });

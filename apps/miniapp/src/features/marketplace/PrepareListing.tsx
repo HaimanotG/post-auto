@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { CopyIcon } from "../../app/icons";
+import { Toast } from "../../app/Toast";
 
 /** Mirrors packages/social/src/marketplace/format-listing.ts's MarketplaceListing shape. */
 export interface MarketplaceListingContent {
@@ -82,32 +84,47 @@ export function PrepareListing({ photoUrl, listing }: PrepareListingProps) {
   }
 
   return (
-    <div>
-      <h1>Prepare for Marketplace</h1>
-      <img src={photoUrl} alt={listing.title} />
-      <p>{listing.title}</p>
-      {listing.priceText && <p>{listing.priceText}</p>}
-      <p>{listing.description}</p>
+    <div className="px-4 pt-4 pb-6">
+      <h1 className="sr-only">Prepare for Marketplace</h1>
+      <img src={photoUrl} alt={listing.title} className="mb-4 h-[220px] w-full rounded-[14px] object-cover" />
+      <p className="mb-0.5 text-[19px] font-bold text-pa-text">{listing.title}</p>
+      {listing.priceText && <p className="mb-2.5 text-[17px] font-semibold text-pa-link">{listing.priceText}</p>}
+      <p className="mb-5 text-[14.5px] leading-normal text-pa-hint">{listing.description}</p>
 
-      <button type="button" onClick={() => void handleCopy()}>
+      <button
+        type="button"
+        onClick={() => void handleCopy()}
+        className="mb-2.5 flex w-full items-center justify-center gap-2 rounded-xl bg-pa-secondary-bg py-3.5 text-[15px] font-semibold text-pa-text"
+      >
+        <CopyIcon />
         Copy listing text
       </button>
-      {copyStatus === "copied" && <p role="status">Copied to clipboard.</p>}
-      {copyStatus === "error" && <p role="alert">Couldn&apos;t copy to clipboard.</p>}
+      {copyStatus === "copied" && <Toast kind="status">Copied to clipboard.</Toast>}
+      {copyStatus === "error" && <Toast kind="alert">Couldn&apos;t copy to clipboard.</Toast>}
 
       {shareAvailable ? (
         <div>
-          <button type="button" onClick={() => void handleShare()} disabled={shareStatus === "sharing"}>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            disabled={shareStatus === "sharing"}
+            className="w-full rounded-xl bg-pa-button py-3.5 text-[15px] font-semibold text-pa-button-text disabled:opacity-60"
+          >
             {shareStatus === "sharing" ? "Sharing…" : "Share to Facebook"}
           </button>
-          {shareStatus === "error" && <p role="alert">Couldn&apos;t share. Copy the listing text instead.</p>}
+          {shareStatus === "error" && <Toast kind="alert">Couldn&apos;t share. Copy the listing text instead.</Toast>}
         </div>
       ) : (
         <div>
-          <a href={MARKETPLACE_CREATE_URL} target="_blank" rel="noreferrer">
+          <a
+            href={MARKETPLACE_CREATE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="block w-full rounded-xl bg-pa-button py-3.5 text-center text-[15px] font-semibold text-pa-button-text"
+          >
             Open Facebook Marketplace
           </a>
-          <p>
+          <p className="mt-2.5 text-[12.5px] leading-normal text-pa-hint">
             Copy the listing text above, then paste it and upload the photo manually on the Facebook Marketplace
             listing page.
           </p>

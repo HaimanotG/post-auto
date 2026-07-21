@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../app/AuthGate";
+import { Toast } from "../../app/Toast";
 
 const DEFAULT_API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
@@ -61,16 +62,16 @@ export function ConnectFacebookButton({ apiBaseUrl = DEFAULT_API_BASE_URL }: Con
   }
 
   return (
-    <div>
+    <div className="w-full">
       <button
         type="button"
         onClick={() => void handleClick()}
         disabled={status.kind === "loading"}
-        className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className="mt-2.5 w-full rounded-xl bg-pa-button px-4 py-3.5 text-base font-semibold text-pa-button-text disabled:opacity-60"
       >
         {status.kind === "loading" ? "Opening Facebook…" : "Connect Facebook"}
       </button>
-      {status.kind === "error" && <p role="alert">{status.message}</p>}
+      {status.kind === "error" && <Toast kind="alert">{status.message}</Toast>}
     </div>
   );
 }
