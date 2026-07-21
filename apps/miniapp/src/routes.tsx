@@ -1,4 +1,8 @@
 import { Link, Outlet, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import { Dashboard } from "./features/analytics/Dashboard";
+import { PostComposer } from "./features/composer/PostComposer";
+import { InboxScreen } from "./features/inbox/InboxScreen";
+import { HomeScreen } from "./features/onboarding/HomeScreen";
 
 const NAV_ITEMS = [
   { to: "/composer", label: "Composer" },
@@ -28,10 +32,18 @@ function RootLayout() {
   );
 }
 
-function RouteStub({ title }: { title: string }) {
+/**
+ * Marketplace listing prep has no data source yet: packages/social's
+ * format-listing.ts and packages/render's MarketplacePhoto.ts (m5-01/m5-02)
+ * are unused by any route or trigger task, so there's no post to pass
+ * PrepareListing.tsx's required `photoUrl`/`listing` props. Left as an
+ * honest placeholder rather than wired against invented data.
+ */
+function MarketplaceRouteStub() {
   return (
     <div>
-      <h1 className="text-xl font-semibold">{title}</h1>
+      <h1 className="text-xl font-semibold">Marketplace</h1>
+      <p>Not available yet — nothing generates listing content for a post to prepare.</p>
     </div>
   );
 }
@@ -41,31 +53,31 @@ const rootRoute = createRootRoute({ component: RootLayout });
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: () => <RouteStub title="PostAuto" />,
+  component: HomeScreen,
 });
 
 const composerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/composer",
-  component: () => <RouteStub title="Composer" />,
+  component: PostComposer,
 });
 
 const inboxRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/inbox",
-  component: () => <RouteStub title="Inbox" />,
+  component: InboxScreen,
 });
 
 const analyticsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/analytics",
-  component: () => <RouteStub title="Analytics" />,
+  component: Dashboard,
 });
 
 const marketplaceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/marketplace",
-  component: () => <RouteStub title="Marketplace" />,
+  component: MarketplaceRouteStub,
 });
 
 const routeTree = rootRoute.addChildren([
