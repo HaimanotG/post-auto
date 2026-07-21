@@ -5,7 +5,7 @@
  *
  * Defaults to the no-credential heuristic classifier/reply-writer (safe to
  * run anywhere, no network). Set RUN_LIVE_AI_EVAL=1 with a real
- * ANTHROPIC_API_KEY or OPENAI_API_KEY to run the same eval set against the
+ * ANTHROPIC_API_KEY, OPENAI_API_KEY, or DEEPSEEK_API_KEY to run the same eval set against the
  * real configured models instead -- mirrors the RUN_LIVE_META_TESTS=1 gating
  * convention PLAN.md's Verification section uses for live Meta-hitting
  * tests, so a plain `pnpm test`/CI run never depends on or spends a real key.
@@ -15,7 +15,7 @@ import { heuristicClassifyIntent, heuristicGenerateReply } from "./heuristic-cla
 import { runAiEval, type AiEvalCaseResult } from "./run-eval.js";
 
 function hasLiveApiKey(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
+  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.DEEPSEEK_API_KEY);
 }
 
 function formatFailure(result: AiEvalCaseResult): string {
@@ -42,7 +42,9 @@ async function main(): Promise<void> {
 
   console.log(`AI eval mode: ${useLive ? "live (real configured models)" : "mocked (heuristic fallback)"}`);
   if (!useLive && process.env.RUN_LIVE_AI_EVAL === "1") {
-    console.log("RUN_LIVE_AI_EVAL=1 was set but no ANTHROPIC_API_KEY/OPENAI_API_KEY was found -- falling back to mocked mode.");
+    console.log(
+      "RUN_LIVE_AI_EVAL=1 was set but no ANTHROPIC_API_KEY/OPENAI_API_KEY/DEEPSEEK_API_KEY was found -- falling back to mocked mode.",
+    );
   }
   console.log(`Pass rate: ${summary.passed}/${summary.total} (${(summary.passRate * 100).toFixed(1)}%)`);
   console.log(`Intent accuracy: ${(summary.intentAccuracy * 100).toFixed(1)}%`);

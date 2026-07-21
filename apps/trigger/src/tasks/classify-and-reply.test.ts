@@ -89,7 +89,7 @@ describe("runClassifyAndReply", () => {
     expect(store.aiReplyDecision.create).toHaveBeenCalledWith({
       data: {
         inboxMessageId: "inbox_message_1",
-        modelUsed: "claude-3-5-sonnet-20241022",
+        modelUsed: "deepseek-chat",
         intentClassified: "price",
         confidence: 0.9,
         decision: "auto_reply",
@@ -121,7 +121,7 @@ describe("runClassifyAndReply", () => {
     expect(store.aiReplyDecision.create).toHaveBeenCalledWith({
       data: {
         inboxMessageId: "inbox_message_1",
-        modelUsed: "claude-3-5-haiku-20241022",
+        modelUsed: "deepseek-chat",
         intentClassified: "other",
         confidence: 0.95,
         decision: "escalate",

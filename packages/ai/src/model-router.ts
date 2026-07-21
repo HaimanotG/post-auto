@@ -9,7 +9,7 @@ import { ChatOpenAI } from "@langchain/openai";
  */
 export type AiTask = "intent-classification" | "reply-generation";
 
-export type ModelProvider = "anthropic" | "openai";
+export type ModelProvider = "anthropic" | "openai" | "deepseek";
 
 export interface TaskModelConfig {
   provider: ModelProvider;
@@ -21,20 +21,27 @@ export interface TaskModelConfig {
 /**
  * Default task -> model mapping per PLAN.md's auto-reply pipeline: a
  * cheap/fast model classifies intent, a stronger model writes the reply.
- * Both default to Claude; swapping either to OpenAI (or a different model)
- * is a one-line edit here, not a code change.
+ * Defaults to DeepSeek (the key currently provisioned); swapping either to
+ * Anthropic/OpenAI (or a different model) is a one-line edit here, not a
+ * code change.
  */
 export const DEFAULT_MODEL_ROUTER_CONFIG: Record<AiTask, TaskModelConfig> = {
   "intent-classification": {
-    provider: "anthropic",
-    model: "claude-3-5-haiku-20241022",
+    provider: "deepseek",
+    model: "deepseek-chat",
     temperature: 0,
   },
   "reply-generation": {
-    provider: "anthropic",
-    model: "claude-3-5-sonnet-20241022",
+    provider: "deepseek",
+    model: "deepseek-chat",
     temperature: 0.7,
   },
+};
+
+const PROVIDER_ENV_VAR: Record<ModelProvider, string> = {
+  anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
 };
 
 export class MissingApiKeyError extends Error {
@@ -42,7 +49,7 @@ export class MissingApiKeyError extends Error {
     readonly provider: ModelProvider,
     readonly task: AiTask,
   ) {
-    const envVar = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY";
+    const envVar = PROVIDER_ENV_VAR[provider];
     super(`No API key for provider "${provider}" (task "${task}"). Set ${envVar} or pass one explicitly.`);
     this.name = "MissingApiKeyError";
   }
@@ -58,10 +65,15 @@ export interface ModelFactoryParams {
 /** Builds a concrete chat model instance. Injectable so tests never construct a real provider client. */
 export type ModelFactory = (params: ModelFactoryParams) => BaseChatModel;
 
+/** DeepSeek's API is OpenAI-compatible, so it reuses ChatOpenAI pointed at DeepSeek's base URL. */
+const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
+
 const defaultFactories: Record<ModelProvider, ModelFactory> = {
   anthropic: ({ model, temperature, maxTokens, apiKey }) =>
     new ChatAnthropic({ model, temperature, maxTokens, apiKey }),
   openai: ({ model, temperature, maxTokens, apiKey }) => new ChatOpenAI({ model, temperature, maxTokens, apiKey }),
+  deepseek: ({ model, temperature, maxTokens, apiKey }) =>
+    new ChatOpenAI({ model, temperature, maxTokens, apiKey, configuration: { baseURL: DEEPSEEK_BASE_URL } }),
 };
 
 export interface GetModelForTaskOptions {
@@ -71,6 +83,8 @@ export interface GetModelForTaskOptions {
   anthropicApiKey?: string;
   /** Defaults to process.env.OPENAI_API_KEY. */
   openaiApiKey?: string;
+  /** Defaults to process.env.DEEPSEEK_API_KEY. */
+  deepseekApiKey?: string;
   /** Defaults to the real @langchain/anthropic and @langchain/openai constructors. */
   factories?: Partial<Record<ModelProvider, ModelFactory>>;
 }
@@ -86,10 +100,12 @@ export function getModelForTask(task: AiTask, options: GetModelForTaskOptions = 
   const override = options.config?.[task];
   const taskConfig: TaskModelConfig = { ...base, ...override };
 
-  const apiKey =
-    taskConfig.provider === "anthropic"
-      ? (options.anthropicApiKey ?? process.env.ANTHROPIC_API_KEY)
-      : (options.openaiApiKey ?? process.env.OPENAI_API_KEY);
+  const explicitApiKey: Record<ModelProvider, string | undefined> = {
+    anthropic: options.anthropicApiKey,
+    openai: options.openaiApiKey,
+    deepseek: options.deepseekApiKey,
+  };
+  const apiKey = explicitApiKey[taskConfig.provider] ?? process.env[PROVIDER_ENV_VAR[taskConfig.provider]];
   if (!apiKey) {
     throw new MissingApiKeyError(taskConfig.provider, task);
   }

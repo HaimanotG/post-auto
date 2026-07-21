@@ -7,7 +7,7 @@ import type { GenerateReplyInput, ReplyGenerationResult } from "../pipelines/rep
 /**
  * A deterministic, rule-based stand-in for classifyIntent/generateReply, used
  * as the eval harness's no-credential fallback (CLI default when no
- * ANTHROPIC_API_KEY/OPENAI_API_KEY-backed live run is requested, and the
+ * ANTHROPIC_API_KEY/OPENAI_API_KEY/DEEPSEEK_API_KEY-backed live run is requested, and the
  * always-on CI test). It is a genuine (if crude) keyword classifier -- not
  * wired to each case's expected answer -- so a passing run is still signal,
  * not a tautology: it classifies purely from message text and would fail
