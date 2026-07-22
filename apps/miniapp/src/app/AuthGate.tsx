@@ -25,6 +25,8 @@ export interface TelegramWebApp {
   initData: string;
   initDataUnsafe: { user?: TelegramWebAppUser; start_param?: string };
   ready: () => void;
+  /** Requests the mini app fill the full viewport height instead of Telegram's default half-expanded state. */
+  expand?: () => void;
   /** Opens a URL in Telegram's external browser rather than an in-app WebView. */
   openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
   /** The Telegram client's active appearance; drives the mini app's own light/dark theme tokens. */
@@ -93,9 +95,11 @@ export interface AuthGateProps {
  */
 export function AuthGate({ children, apiBaseUrl = DEFAULT_API_BASE_URL }: AuthGateProps) {
   const [status, setStatus] = useState<Status>({ kind: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
+    setStatus({ kind: "loading" });
 
     async function authenticate() {
       const initData = window.Telegram?.WebApp?.initData;
@@ -133,7 +137,7 @@ export function AuthGate({ children, apiBaseUrl = DEFAULT_API_BASE_URL }: AuthGa
     return () => {
       cancelled = true;
     };
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, attempt]);
 
   if (status.kind === "loading") {
     return (
@@ -145,8 +149,15 @@ export function AuthGate({ children, apiBaseUrl = DEFAULT_API_BASE_URL }: AuthGa
 
   if (status.kind === "error") {
     return (
-      <div role="alert" className="flex min-h-screen items-center justify-center bg-pa-bg px-6 text-center text-[14.5px] text-pa-destructive">
+      <div role="alert" className="flex min-h-screen flex-col items-center justify-center gap-4 bg-pa-bg px-6 text-center text-[14.5px] text-pa-destructive">
         {status.message}
+        <button
+          type="button"
+          onClick={() => setAttempt((current) => current + 1)}
+          className="rounded-lg bg-pa-link px-4 py-2 text-[14.5px] font-semibold text-white"
+        >
+          Retry
+        </button>
       </div>
     );
   }
