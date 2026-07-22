@@ -1,11 +1,9 @@
 import { useState, type FormEvent } from "react";
+import { DEFAULT_API_BASE_URL } from "../../app/api-config";
 import { useAuth } from "../../app/AuthGate";
 import { ChevronDownIcon, ChevronUpIcon, RemoveIcon } from "../../app/icons";
 import { Toast } from "../../app/Toast";
 import { TemplatePicker, type SlideTemplateId } from "./TemplatePicker";
-
-const DEFAULT_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
 
 export interface PostComposerProps {
   apiBaseUrl?: string;

@@ -54,7 +54,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   await app.register(fastifyCors, {
-    origin: options.corsOrigin ?? ["http://localhost:5173"],
+    origin: options.corsOrigin ?? [
+      "http://localhost:5173",
+      "https://post-auto-miniapp.vercel.app",
+    ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization", "x-telegram-init-data"],
   });

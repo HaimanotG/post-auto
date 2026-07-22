@@ -14,7 +14,7 @@ async function main(): Promise<void> {
     tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY,
     baseUrl: env.API_BASE_URL,
     telegramBotUsername: env.TELEGRAM_BOT_USERNAME,
-    corsOrigin: env.MINIAPP_ORIGIN?.split(",").map((origin) => origin.trim()),
+    corsOrigin: env.MINIAPP_ORIGIN?.split(",").map((origin) => origin.trim().replace(/\/+$/, "")),
   });
 
   await app.listen({ port: env.PORT, host: "0.0.0.0" });

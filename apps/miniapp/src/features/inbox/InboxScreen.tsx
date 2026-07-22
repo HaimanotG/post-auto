@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
+import { DEFAULT_API_BASE_URL } from "../../app/api-config";
 import { useAuth } from "../../app/AuthGate";
 import { useSetHeader } from "../../app/HeaderContext";
 import { ConversationThread, type AiReplyDecisionSummary } from "./ConversationThread";
 import { InboxList, type InboxMessageSummary } from "./InboxList";
-
-const DEFAULT_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
 
 export interface InboxScreenProps {
   apiBaseUrl?: string;

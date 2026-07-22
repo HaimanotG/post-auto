@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { DEFAULT_API_BASE_URL } from "./api-config";
 
 export interface TelegramWebAppUser {
   id: number;
@@ -79,9 +80,6 @@ interface AuthResponse {
   user: AuthUser;
 }
 
-const DEFAULT_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
-
 export interface AuthGateProps {
   children: ReactNode;
   apiBaseUrl?: string;
@@ -126,7 +124,16 @@ export function AuthGate({ children, apiBaseUrl = DEFAULT_API_BASE_URL }: AuthGa
         }
       } catch (error) {
         if (!cancelled) {
-          const message = error instanceof Error ? error.message : "Authentication failed";
+          // A bare TypeError here (message === "Failed to fetch") means the
+          // request never reached the server at all — wrong apiBaseUrl, the
+          // API is down, or CORS rejected it — not an HTTP-level auth
+          // failure, so name the URL to make that distinction obvious.
+          const message =
+            error instanceof TypeError
+              ? `Could not reach the API at ${apiBaseUrl} (network error or blocked by CORS)`
+              : error instanceof Error
+                ? error.message
+                : "Authentication failed";
           setStatus({ kind: "error", message });
         }
       }

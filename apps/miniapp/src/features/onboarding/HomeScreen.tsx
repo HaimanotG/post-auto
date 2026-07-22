@@ -1,13 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { DEFAULT_API_BASE_URL } from "../../app/api-config";
 import { useAuth } from "../../app/AuthGate";
 import { ChevronRightIcon, ComposeIcon, FacebookIcon, GoodCheckIcon, InboxIcon } from "../../app/icons";
 import { platformAccountLabel } from "../../app/platform-labels";
 import { ConnectFacebookButton } from "./ConnectFacebookButton";
 import { OAuthStatusPoller, type ConnectedSocialAccount } from "./OAuthStatusPoller";
-
-const DEFAULT_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
 
 export interface HomeScreenProps {
   apiBaseUrl?: string;

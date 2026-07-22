@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
+import { DEFAULT_API_BASE_URL } from "../../app/api-config";
 import { useAuth } from "../../app/AuthGate";
 import { Toast } from "../../app/Toast";
-
-const DEFAULT_API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:3000";
 
 export interface ConnectedSocialAccount {
   platform: string;
