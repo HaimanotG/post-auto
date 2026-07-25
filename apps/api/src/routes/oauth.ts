@@ -47,8 +47,10 @@ interface StoredOAuthState {
 }
 
 interface StoredSocialAccount {
+  id: string;
   platform: Platform;
   externalAccountId: string;
+  displayName: string | null;
   status: string;
 }
 
@@ -57,6 +59,7 @@ interface SocialAccountWriteFields {
   scopes: string[];
   status: "active";
   tokenExpiresAt: Date | null;
+  displayName: string | null;
 }
 
 /**
@@ -282,6 +285,7 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
               scopes: FACEBOOK_OAUTH_SCOPES,
               status: "active",
               tokenExpiresAt: null,
+              displayName: page.name,
             },
             create: {
               businessId: state.businessId,
@@ -291,10 +295,14 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
               scopes: FACEBOOK_OAUTH_SCOPES,
               status: "active",
               tokenExpiresAt: null,
+              displayName: page.name,
             },
           });
 
           if (page.instagramBusinessAccountId) {
+            const igDisplayName = page.instagramBusinessAccountUsername
+              ? `@${page.instagramBusinessAccountUsername}`
+              : null;
             await options.prisma.socialAccount.upsert({
               where: {
                 businessId_platform_externalAccountId: {
@@ -308,6 +316,7 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
                 scopes: FACEBOOK_OAUTH_SCOPES,
                 status: "active",
                 tokenExpiresAt: null,
+                displayName: igDisplayName,
               },
               create: {
                 businessId: state.businessId,
@@ -317,6 +326,7 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
                 scopes: FACEBOOK_OAUTH_SCOPES,
                 status: "active",
                 tokenExpiresAt: null,
+                displayName: igDisplayName,
               },
             });
           }
@@ -355,7 +365,14 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
             externalAccountId: shortLived.userId,
           },
         },
-        update: { accessTokenEncrypted: encryptedToken, scopes: THREADS_OAUTH_SCOPES, status: "active", tokenExpiresAt },
+        update: {
+          accessTokenEncrypted: encryptedToken,
+          scopes: THREADS_OAUTH_SCOPES,
+          status: "active",
+          tokenExpiresAt,
+          // Threads' token exchange doesn't return a display name/handle.
+          displayName: null,
+        },
         create: {
           businessId: state.businessId,
           platform: "threads",
@@ -364,6 +381,7 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
           scopes: THREADS_OAUTH_SCOPES,
           status: "active",
           tokenExpiresAt,
+          displayName: null,
         },
       });
 
@@ -405,8 +423,10 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
     const accounts = await options.prisma.socialAccount.findMany({ where: { businessId: business.id } });
     return {
       connected: accounts.map((account) => ({
+        id: account.id,
         platform: account.platform,
         externalAccountId: account.externalAccountId,
+        displayName: account.displayName,
         status: account.status,
       })),
     };

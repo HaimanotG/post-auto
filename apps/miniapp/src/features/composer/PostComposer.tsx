@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { DEFAULT_API_BASE_URL } from "../../app/api-config";
 import { useAuth } from "../../app/AuthGate";
-import { ChevronDownIcon, ChevronUpIcon, RemoveIcon } from "../../app/icons";
+import { ChevronDownIcon, ChevronUpIcon, FacebookIcon, PLATFORM_ICONS, RemoveIcon } from "../../app/icons";
+import { platformAccountLabel } from "../../app/platform-labels";
 import { Toast } from "../../app/Toast";
+import type { ConnectedSocialAccount } from "../onboarding/OAuthStatusPoller";
 import { TemplatePicker, type SlideTemplateId } from "./TemplatePicker";
 
 export interface PostComposerProps {
@@ -30,7 +32,15 @@ interface CreatedPost {
   sourceAssets: Array<{ id: string; rawUrl: string }>;
 }
 
-type Status = { kind: "idle" } | { kind: "saving" } | { kind: "error"; message: string } | { kind: "saved"; post: CreatedPost };
+type AccountsStatus = "loading" | "loaded" | "error";
+
+type Status =
+  | { kind: "idle" }
+  | { kind: "saving"; intent: "draft" | "publish" }
+  | { kind: "publishing" }
+  | { kind: "error"; message: string }
+  | { kind: "saved"; post: CreatedPost }
+  | { kind: "published"; post: CreatedPost; queuedCount: number };
 
 function moveItem<T>(items: T[], index: number, direction: -1 | 1): T[] {
   const to = index + direction;
@@ -45,11 +55,13 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1): T[] {
  * Draft post creation form per PLAN.md's M1 composer scope: caption plus one
  * or more source images (entered by URL — there's no upload/object-storage
  * pipeline until M2's render package), each optionally carrying a product
- * name/price/description that post_source_assets reserves room for. Submits
- * to POST /posts (m1-09's route), which persists a `draft` post; rendering,
- * platform adaptation, and publishing happen in later milestones. The slide
- * template only drives local labeling/reordering here — POST /posts has no
- * template field yet.
+ * name/price/description that post_source_assets reserves room for. Also
+ * lets the caller pick which of the business's connected accounts to target
+ * (a business can have several Facebook Pages, so this is a specific
+ * social_account, not just "the platform") -- "Save draft" persists that
+ * choice as pending post_platform_variants without publishing; "Publish now"
+ * does the same and then calls POST /posts/:id/publish, which enqueues
+ * apps/trigger's publish-post task per targeted account.
  */
 export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposerProps) {
   const { token } = useAuth();
@@ -57,7 +69,47 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
   const [captionMaster, setCaptionMaster] = useState("");
   const [assets, setAssets] = useState<AssetDraft[]>(() => [emptyAsset()]);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [accountsStatus, setAccountsStatus] = useState<AccountsStatus>("loading");
+  const [accounts, setAccounts] = useState<ConnectedSocialAccount[]>([]);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(new Set());
   const carouselMode = template === "carousel";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAccounts() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/oauth/status`, {
+          headers: { authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error(`Failed to load connected accounts with status ${response.status}`);
+        const body = (await response.json()) as { connected: ConnectedSocialAccount[] };
+        if (!cancelled) {
+          setAccounts(body.connected);
+          setAccountsStatus("loaded");
+        }
+      } catch {
+        if (!cancelled) setAccountsStatus("error");
+      }
+    }
+
+    void loadAccounts();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBaseUrl, token]);
+
+  function toggleAccount(accountId: string) {
+    setSelectedAccountIds((current) => {
+      const next = new Set(current);
+      if (next.has(accountId)) {
+        next.delete(accountId);
+      } else {
+        next.add(accountId);
+      }
+      return next;
+    });
+  }
 
   function updateAsset(index: number, patch: Partial<AssetDraft>) {
     setAssets((current) => current.map((asset, i) => (i === index ? { ...asset, ...patch } : asset)));
@@ -75,15 +127,18 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
     setAssets((current) => moveItem(current, index, direction));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus({ kind: "saving" });
-
+  async function handleSubmit(intent: "draft" | "publish") {
     const nonEmptyAssets = assets.filter((asset) => asset.rawUrl.trim().length > 0);
     if (nonEmptyAssets.length === 0) {
       setStatus({ kind: "error", message: "At least one image URL is required" });
       return;
     }
+    if (intent === "publish" && selectedAccountIds.size === 0) {
+      setStatus({ kind: "error", message: "Select at least one account to publish to" });
+      return;
+    }
+
+    setStatus({ kind: "saving", intent });
 
     try {
       const response = await fetch(`${apiBaseUrl}/posts`, {
@@ -97,6 +152,7 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
             price: asset.price.trim().length > 0 ? Number(asset.price) : undefined,
             description: asset.description.trim().length > 0 ? asset.description.trim() : undefined,
           })),
+          ...(selectedAccountIds.size > 0 ? { targetAccountIds: [...selectedAccountIds] } : {}),
         }),
       });
 
@@ -105,21 +161,39 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
       }
 
       const post = (await response.json()) as CreatedPost;
-      setStatus({ kind: "saved", post });
+
+      if (intent === "publish") {
+        setStatus({ kind: "publishing" });
+        const publishResponse = await fetch(`${apiBaseUrl}/posts/${post.id}/publish`, {
+          method: "POST",
+          headers: { authorization: `Bearer ${token}` },
+        });
+        if (!publishResponse.ok) {
+          throw new Error(`Failed to publish post with status ${publishResponse.status}`);
+        }
+        const publishBody = (await publishResponse.json()) as { queued: unknown[] };
+        setStatus({ kind: "published", post, queuedCount: publishBody.queued.length });
+      } else {
+        setStatus({ kind: "saved", post });
+      }
+
       setCaptionMaster("");
       setAssets([emptyAsset()]);
       setTemplate("single-product");
+      setSelectedAccountIds(new Set());
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save draft";
+      const fallback = intent === "publish" ? "Failed to publish post" : "Failed to save draft";
+      const message = error instanceof Error ? error.message : fallback;
       setStatus({ kind: "error", message });
     }
   }
 
+  const busy = status.kind === "saving" || status.kind === "publishing";
   const fieldClassName =
     "w-full rounded-[10px] border-none bg-pa-bg px-3 py-2.5 text-[14.5px] text-pa-text placeholder:text-pa-hint";
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)} className="px-4 pt-4 pb-[100px]">
+    <div className="px-4 pt-4 pb-[100px]">
       <TemplatePicker value={template} onChange={setTemplate} />
 
       <label
@@ -254,16 +328,82 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
         <span aria-hidden="true">+ </span>Add another image
       </button>
 
-      <button
-        type="submit"
-        disabled={status.kind === "saving"}
-        className="w-full rounded-xl bg-pa-button py-4 text-base font-semibold text-pa-button-text disabled:opacity-60"
-      >
-        {status.kind === "saving" ? "Saving…" : "Save draft"}
-      </button>
+      <div className="px-1 pb-2 text-[13px] font-semibold tracking-[0.4px] text-pa-hint uppercase">Post to</div>
+
+      {accountsStatus === "loading" && (
+        <div role="status" className="px-1 py-3 text-[14.5px] text-pa-hint">
+          Loading accounts…
+        </div>
+      )}
+      {accountsStatus === "error" && (
+        <div role="alert" className="px-1 py-3 text-[14.5px] text-pa-destructive">
+          Couldn't load your connected accounts.
+        </div>
+      )}
+      {accountsStatus === "loaded" && accounts.length === 0 && (
+        <div className="mb-5 rounded-[14px] bg-pa-secondary-bg px-3.5 py-3.5 text-[14.5px] text-pa-hint">
+          No accounts connected yet. Connect one from the Home tab before publishing.
+        </div>
+      )}
+      {accountsStatus === "loaded" && accounts.length > 0 && (
+        <div className="mb-5 overflow-hidden rounded-[14px] bg-pa-secondary-bg">
+          {accounts.map((account) => {
+            const Icon = PLATFORM_ICONS[account.platform] ?? FacebookIcon;
+            return (
+              <label
+                key={account.id}
+                className="flex items-center gap-3 border-b border-pa-separator px-3.5 py-3.5 last:border-b-0"
+              >
+                <input
+                  type="checkbox"
+                  aria-label={account.displayName ?? platformAccountLabel(account.platform)}
+                  checked={selectedAccountIds.has(account.id)}
+                  onChange={() => toggleAccount(account.id)}
+                  className="h-5 w-5 flex-none accent-pa-link"
+                />
+                <Icon className="flex-none text-pa-link" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px] font-semibold text-pa-text">
+                    {account.displayName ?? platformAccountLabel(account.platform)}
+                  </div>
+                  <div className="truncate text-[12.5px] text-pa-hint">{platformAccountLabel(account.platform)}</div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex gap-2.5">
+        <button
+          type="button"
+          onClick={() => void handleSubmit("draft")}
+          disabled={busy}
+          className="flex-1 rounded-xl border-[1.4px] border-pa-hint py-4 text-base font-semibold text-pa-text disabled:opacity-60"
+        >
+          {status.kind === "saving" && status.intent === "draft" ? "Saving…" : "Save draft"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleSubmit("publish")}
+          disabled={busy || selectedAccountIds.size === 0}
+          className="flex-1 rounded-xl bg-pa-button py-4 text-base font-semibold text-pa-button-text disabled:opacity-60"
+        >
+          {status.kind === "publishing"
+            ? "Publishing…"
+            : status.kind === "saving" && status.intent === "publish"
+              ? "Starting…"
+              : "Publish now"}
+        </button>
+      </div>
 
       {status.kind === "error" && <Toast kind="alert">{status.message}</Toast>}
       {status.kind === "saved" && <Toast kind="status">Draft saved.</Toast>}
-    </form>
+      {status.kind === "published" && (
+        <Toast kind="status">
+          Publishing to {status.queuedCount} account{status.queuedCount === 1 ? "" : "s"}…
+        </Toast>
+      )}
+    </div>
   );
 }

@@ -4,8 +4,10 @@ import { useAuth } from "../../app/AuthGate";
 import { Toast } from "../../app/Toast";
 
 export interface ConnectedSocialAccount {
+  id: string;
   platform: string;
   externalAccountId: string;
+  displayName: string | null;
   status: string;
 }
 

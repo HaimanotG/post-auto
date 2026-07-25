@@ -83,7 +83,7 @@ function TabBar() {
 export function AppShell() {
   return (
     <HeaderProvider>
-      <div className="flex min-h-screen flex-col bg-pa-bg text-pa-text">
+      <div className="flex h-dvh flex-col overflow-hidden bg-pa-bg text-pa-text">
         <Header />
         <main className="flex-1 overflow-y-auto">
           <Outlet />

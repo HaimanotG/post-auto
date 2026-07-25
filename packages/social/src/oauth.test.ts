@@ -109,14 +109,14 @@ describe("fetchFacebookPageAccounts", () => {
       http.get(`${BASE_URL}/v21.0/me/accounts`, ({ request }) => {
         const url = new URL(request.url);
         expect(url.searchParams.get("access_token")).toBe("user-token");
-        expect(url.searchParams.get("fields")).toBe("id,name,access_token,instagram_business_account");
+        expect(url.searchParams.get("fields")).toBe("id,name,access_token,instagram_business_account{id,username}");
         return HttpResponse.json({
           data: [
             {
               id: "page-1",
               name: "Page One",
               access_token: "page-1-token",
-              instagram_business_account: { id: "ig-1" },
+              instagram_business_account: { id: "ig-1", username: "page_one_ig" },
             },
             { id: "page-2", name: "Page Two", access_token: "page-2-token" },
           ],
@@ -128,8 +128,20 @@ describe("fetchFacebookPageAccounts", () => {
     const pages = await fetchFacebookPageAccounts(client, "user-token");
 
     expect(pages).toEqual([
-      { id: "page-1", name: "Page One", accessToken: "page-1-token", instagramBusinessAccountId: "ig-1" },
-      { id: "page-2", name: "Page Two", accessToken: "page-2-token", instagramBusinessAccountId: undefined },
+      {
+        id: "page-1",
+        name: "Page One",
+        accessToken: "page-1-token",
+        instagramBusinessAccountId: "ig-1",
+        instagramBusinessAccountUsername: "page_one_ig",
+      },
+      {
+        id: "page-2",
+        name: "Page Two",
+        accessToken: "page-2-token",
+        instagramBusinessAccountId: undefined,
+        instagramBusinessAccountUsername: undefined,
+      },
     ]);
   });
 });

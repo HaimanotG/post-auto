@@ -95,6 +95,8 @@ export interface FacebookPageAccount {
   /** Page access token — also used to publish to the linked IG Business account. */
   accessToken: string;
   instagramBusinessAccountId?: string;
+  /** The linked IG Business account's @handle, if any -- lets callers label it distinctly from its parent Page. */
+  instagramBusinessAccountUsername?: string;
 }
 
 interface FacebookAccountsResponse {
@@ -102,7 +104,7 @@ interface FacebookAccountsResponse {
     id: string;
     name: string;
     access_token: string;
-    instagram_business_account?: { id: string };
+    instagram_business_account?: { id: string; username?: string };
   }>;
 }
 
@@ -113,7 +115,7 @@ export async function fetchFacebookPageAccounts(
 ): Promise<FacebookPageAccount[]> {
   const response = await client.get<FacebookAccountsResponse>(
     "/me/accounts",
-    { fields: "id,name,access_token,instagram_business_account" },
+    { fields: "id,name,access_token,instagram_business_account{id,username}" },
     userAccessToken,
   );
   return response.data.data.map((page) => ({
@@ -121,6 +123,7 @@ export async function fetchFacebookPageAccounts(
     name: page.name,
     accessToken: page.access_token,
     instagramBusinessAccountId: page.instagram_business_account?.id,
+    instagramBusinessAccountUsername: page.instagram_business_account?.username,
   }));
 }
 

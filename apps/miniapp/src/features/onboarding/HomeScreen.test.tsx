@@ -96,13 +96,63 @@ describe("HomeScreen", () => {
     expect(screen.getByRole("link", { name: /2 messages need attention/ })).toHaveAttribute("href", "/inbox");
   });
 
-  it("treats a failed connection-status check as not connected", async () => {
+  it("shows a distinct error state when the connection-status check fails, instead of a misleading connect prompt", async () => {
     mockAuthenticatedFetch({ "/oauth/status": () => new Response(null, { status: 500 }) });
 
     renderHomeScreen();
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Connect your business account" })).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load your connection status");
     });
+    expect(screen.queryByRole("heading", { name: "Connect your business account" })).not.toBeInTheDocument();
+  });
+
+  it("shows an Instagram-not-linked notice and a Threads connect option when only Facebook is connected", async () => {
+    mockAuthenticatedFetch({
+      "/oauth/status": () =>
+        new Response(
+          JSON.stringify({
+            connected: [
+              { id: "acct_1", platform: "facebook_page", externalAccountId: "page-1", displayName: "My Shop", status: "active" },
+            ],
+          }),
+          { status: 200 },
+        ),
+      "/inbox": () => new Response(JSON.stringify({ messages: [] }), { status: 200 }),
+    });
+
+    renderHomeScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText("My Shop")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Instagram not linked")).toBeInTheDocument();
+    expect(screen.getByText("Threads not connected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconnect Facebook" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Connect Threads" })).toBeInTheDocument();
+  });
+
+  it("distinguishes two connected Facebook Pages by name and hints at per-account targeting", async () => {
+    mockAuthenticatedFetch({
+      "/oauth/status": () =>
+        new Response(
+          JSON.stringify({
+            connected: [
+              { id: "acct_1", platform: "facebook_page", externalAccountId: "page-1", displayName: "Shop A", status: "active" },
+              { id: "acct_2", platform: "facebook_page", externalAccountId: "page-2", displayName: "Shop B", status: "active" },
+            ],
+          }),
+          { status: 200 },
+        ),
+      "/inbox": () => new Response(JSON.stringify({ messages: [] }), { status: 200 }),
+    });
+
+    renderHomeScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText("Shop A")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Shop B")).toBeInTheDocument();
+    expect(screen.getByText(/2 Facebook Pages connected/)).toBeInTheDocument();
   });
 });

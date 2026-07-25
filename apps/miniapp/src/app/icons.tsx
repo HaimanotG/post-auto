@@ -103,6 +103,36 @@ export function FacebookIcon({ className }: IconProps) {
   );
 }
 
+export function InstagramIcon({ className }: IconProps) {
+  return (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="16.6" cy="7.4" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function ThreadsIcon({ className }: IconProps) {
+  return (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 3.5c-4.5 0-7 2.7-7 6.6v3.8c0 3.9 2.5 6.6 7 6.6s7-2.7 7-6.6"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.3 11.2c0-1.9 1.3-2.8 2.9-2.8 2 0 3.1 1.2 3.1 3v1.7c0 2.2-1.4 3.3-3.4 3.3-1.6 0-2.7-.7-2.7-2 0-1.4 1.4-2.1 3.3-2.1h2.1"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function TabHomeIcon({ className }: IconProps) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -131,3 +161,10 @@ export function TabMarketplaceIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Looks up a connected account's platform icon (facebook_page/instagram_business/threads), falling back to FacebookIcon for any unrecognized value. */
+export const PLATFORM_ICONS: Record<string, (props: IconProps) => ReturnType<typeof FacebookIcon>> = {
+  facebook_page: FacebookIcon,
+  instagram_business: InstagramIcon,
+  threads: ThreadsIcon,
+};

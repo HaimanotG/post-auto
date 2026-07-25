@@ -40,9 +40,13 @@ export function createFixturePrismaStore(
     businessMember: { upsert: vi.fn(), ...overrides.businessMember },
     oAuthState: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), ...overrides.oAuthState },
     socialAccount: { upsert: vi.fn(), findMany: vi.fn(), ...overrides.socialAccount },
-    post: { create: vi.fn(), ...overrides.post },
+    post: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn(), ...overrides.post },
     webhookEvent: { create: vi.fn().mockResolvedValue({ id: "webhook_event_1" }), ...overrides.webhookEvent },
-    postPlatformVariant: { findMany: vi.fn().mockResolvedValue([]), ...overrides.postPlatformVariant },
+    postPlatformVariant: {
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue(undefined),
+      ...overrides.postPlatformVariant,
+    },
     inboxMessage: { findMany: vi.fn().mockResolvedValue([]), ...overrides.inboxMessage },
   } as FixturePrismaStore;
 }

@@ -233,7 +233,7 @@ describe("GET /oauth/:platform/callback", () => {
               id: "page-1",
               name: "Page One",
               access_token: "page-1-access-token",
-              instagram_business_account: { id: "ig-1" },
+              instagram_business_account: { id: "ig-1", username: "page_one_ig" },
             },
           ],
         }),
@@ -278,6 +278,7 @@ describe("GET /oauth/:platform/callback", () => {
       externalAccountId: "page-1",
     });
     expect(pageCall![0].create.accessTokenEncrypted).not.toContain("page-1-access-token");
+    expect(pageCall![0].create.displayName).toBe("Page One");
 
     const igCall = socialAccountUpsert.mock.calls.find(
       (call) => call[0].where.businessId_platform_externalAccountId.platform === "instagram_business",
@@ -288,6 +289,7 @@ describe("GET /oauth/:platform/callback", () => {
       platform: "instagram_business",
       externalAccountId: "ig-1",
     });
+    expect(igCall![0].create.displayName).toBe("@page_one_ig");
   });
 
   it("exchanges the code and upserts a threads social_account for the threads grant", async () => {
@@ -555,9 +557,15 @@ describe("GET /oauth/status", () => {
     ({ app } = await buildFixtureApp({
       business: { findFirst: vi.fn().mockResolvedValue({ id: "biz_1" }) },
       socialAccount: {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([{ platform: "facebook_page", externalAccountId: "page-1", status: "active" }]),
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "account_1",
+            platform: "facebook_page",
+            externalAccountId: "page-1",
+            displayName: "My Shop",
+            status: "active",
+          },
+        ]),
       },
     }));
     const token = await signJwt(app, { sub: "user_1", telegramUserId: "42" });
@@ -570,7 +578,15 @@ describe("GET /oauth/status", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      connected: [{ platform: "facebook_page", externalAccountId: "page-1", status: "active" }],
+      connected: [
+        {
+          id: "account_1",
+          platform: "facebook_page",
+          externalAccountId: "page-1",
+          displayName: "My Shop",
+          status: "active",
+        },
+      ],
     });
   });
 });

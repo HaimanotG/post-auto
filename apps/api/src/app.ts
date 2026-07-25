@@ -7,7 +7,7 @@ import { registerAnalyticsRoutes, type AnalyticsStore } from "./routes/analytics
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerInboxRoutes, type InboxStore } from "./routes/inbox.js";
 import { registerOAuthRoutes, type OAuthRoutesOptions, type OAuthStore } from "./routes/oauth.js";
-import { registerPostsRoutes, type PostStore } from "./routes/posts.js";
+import { registerPostsRoutes, type PostsRoutesOptions, type PostStore } from "./routes/posts.js";
 import { registerWebhooksMetaRoutes, type WebhookEventStore, type WebhooksMetaRoutesOptions } from "./routes/webhooks-meta.js";
 
 export interface BuildAppOptions {
@@ -33,6 +33,8 @@ export interface BuildAppOptions {
   now?: OAuthRoutesOptions["now"];
   /** Injectable for tests; forwarded to registerWebhooksMetaRoutes. */
   enqueueProcessMetaWebhook?: WebhooksMetaRoutesOptions["enqueueProcessMetaWebhook"];
+  /** Injectable for tests; forwarded to registerPostsRoutes. */
+  enqueuePublishPost?: PostsRoutesOptions["enqueuePublishPost"];
 }
 
 /**
@@ -85,7 +87,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     now: options.now,
   });
 
-  registerPostsRoutes(app, { prisma: options.prisma });
+  registerPostsRoutes(app, { prisma: options.prisma, enqueuePublishPost: options.enqueuePublishPost });
 
   registerAnalyticsRoutes(app, { prisma: options.prisma });
 

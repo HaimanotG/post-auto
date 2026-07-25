@@ -123,6 +123,12 @@ model SocialAccount {
   businessId           String              @map("business_id")
   platform             Platform
   externalAccountId    String              @map("external_account_id")
+  // The Facebook Page's name, or the linked IG Business account's @handle --
+  // lets the mini app tell apart two connected accounts of the same platform
+  // (e.g. two Facebook Pages) by more than a raw numeric id. Nullable since
+  // Threads' OAuth grant doesn't return a display name, and existing rows
+  // predate this column.
+  displayName          String?             @map("display_name")
   accessTokenEncrypted String              @map("access_token_encrypted")
   tokenExpiresAt       DateTime?           @map("token_expires_at")
   scopes               String[]
@@ -130,8 +136,9 @@ model SocialAccount {
   createdAt            DateTime            @default(now()) @map("created_at")
   updatedAt            DateTime            @updatedAt @map("updated_at")
 
-  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  inboxMessages InboxMessage[]
+  business             Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  inboxMessages        InboxMessage[]
+  postPlatformVariants PostPlatformVariant[]
 
   @@unique([businessId, platform, externalAccountId])
   @@map("social_accounts")
@@ -188,8 +195,15 @@ model PostSourceAsset {
 }
 
 model PostPlatformVariant {
-  id                String                    @id @default(cuid())
-  postId            String                    @map("post_id")
+  id     String @id @default(cuid())
+  postId String @map("post_id")
+  // Which of the business's connected accounts this variant targets. Kept
+  // alongside `platform` (denormalized, still needed for
+  // routes/webhooks-meta.ts's object-type mapping and routes/analytics.ts's
+  // per-platform rollup) so a post can target more than one account of the
+  // same platform -- e.g. two Facebook Pages -- which a plain
+  // [postId, platform] unique key couldn't represent.
+  socialAccountId   String                    @map("social_account_id")
   platform          Platform
   variantStatus     PostPlatformVariantStatus @default(pending) @map("variant_status")
   captionText       String?                   @map("caption_text")
@@ -203,9 +217,10 @@ model PostPlatformVariant {
   updatedAt         DateTime                  @updatedAt @map("updated_at")
 
   post                Post                 @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount       SocialAccount        @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
   engagementSnapshots EngagementSnapshot[]
 
-  @@unique([postId, platform])
+  @@unique([postId, socialAccountId])
   @@map("post_platform_variants")
 }
 
