@@ -1,0 +1,264 @@
+--- Community 0 (size 92) ---
+  sample labels: ['classify-and-reply.ts orchestration (referenced, exact path unconfirmed in this chunk)', 'ai-eval.test.ts', '"AI_EVAL_CASES against the heuristic fallback" test suite', 'cli.ts', 'formatFailure()', 'hasLiveApiKey()']
+  files: ['PLAN.md', 'apps/trigger/src/tasks/classify-and-reply.test.ts', 'apps/trigger/src/tasks/classify-and-reply.ts']
+--- Community 1 (size 90) ---
+  sample labels: ['test/fixtures README (Inter font test fixture)', 'assets/fonts README (Inter font bundling)', 'Font bundled locally due to no outbound network access', 'index.ts', 'fonts.ts', 'DEFAULT_FONT_PATH']
+  files: ['apps/trigger/src/tasks/render-slides.test.ts', 'apps/trigger/src/tasks/render-slides.ts', 'apps/trigger/trigger.config.ts']
+--- Community 2 (size 87) ---
+  sample labels: ['business-context.ts', 'AuthenticatedUser', 'BusinessContextStore', 'requireAuthenticatedUser()', 'resolveOwnedBusiness()', 'telegram-init-data.ts']
+  files: ['apps/api/src/app.test.ts', 'apps/api/src/app.ts', 'apps/api/src/env.ts']
+--- Community 3 (size 68) ---
+  sample labels: ['index.ts', 'PLAN.md', 'StoredInboxMessage', 'StoredSocialAccount', 'adapt-post.ts', 'AdaptedPostVariant']
+  files: ['PLAN.md', 'apps/api/src/routes/inbox.ts', 'apps/api/src/routes/oauth.ts']
+--- Community 4 (size 43) ---
+  sample labels: ['tsconfig.base.json', 'compilerOptions', 'composite', 'declaration', 'esModuleInterop', 'forceConsistentCasingInFileNames']
+  files: ['packages/config/tsconfig.base.json', 'packages/db/tsconfig.build.json', 'packages/db/tsconfig.json']
+--- Community 5 (size 38) ---
+  sample labels: ['Rationale: Fastify chosen for raw-body webhook verification', 'Single Graph API client wrapper (packages/social/src/graph-client.ts)', 'Meta Graph API integration (OAuth + webhooks + rate limits)', 'Graph API error taxonomy (classifyGraphErrorCode/Status, isRetryable)', 'Rationale: fastify-raw-body unscoped package name gotcha', 'Rationale: backoff computed before next Graph API call, not the returning one']
+  files: ['PLAN.md', 'apps/api/src/routes/oauth.ts', 'packages/social/src/graph-client.ts']
+--- Community 6 (size 33) ---
+  sample labels: ['package.json', 'devDependencies', 'turbo', 'typescript', 'engines', 'node']
+  files: ['package.json', 'turbo.json']
+--- Community 7 (size 31) ---
+  sample labels: ['platform-labels.ts', 'PLATFORM_ACCOUNT_LABELS', 'PLATFORM_LABELS', 'platformAccountLabel()', 'platformLabel()', 'ConversationThread.tsx']
+  files: ['apps/miniapp/src/app/platform-labels.ts', 'apps/miniapp/src/features/inbox/ConversationThread.test.tsx', 'apps/miniapp/src/features/inbox/ConversationThread.tsx']
+--- Community 8 (size 27) ---
+  sample labels: ['ClassifyAndReplyStore', 'CollectEngagementSnapshotsStore', 'process-meta-webhook.ts', 'CHANGE_NORMALIZERS', 'MetaMessagingEvent', 'MetaWebhookChange']
+  files: ['apps/trigger/src/tasks/classify-and-reply.ts', 'apps/trigger/src/tasks/collect-engagement-snapshots.ts', 'apps/trigger/src/tasks/process-meta-webhook.test.ts']
+--- Community 9 (size 25) ---
+  sample labels: ['CopyIcon()', 'format-listing.ts', 'buildListingText()', 'deriveDescription()', 'deriveTitle()', 'firstNonEmptyLine()']
+  files: ['apps/miniapp/src/app/icons.tsx', 'apps/miniapp/src/features/marketplace/PrepareListing.test.tsx', 'apps/miniapp/src/features/marketplace/PrepareListing.tsx']
+--- Community 10 (size 25) ---
+  sample labels: ['fetch-engagement.ts', 'fetchInstagramMediaEngagement()', 'FetchInstagramMediaEngagementParams', 'InstagramMediaEngagementResponse', 'fetch-engagement.test.ts', 'server']
+  files: ['PLAN.md', 'apps/trigger/src/tasks/collect-engagement-snapshots.ts', 'packages/db/prisma/schema.prisma']
+--- Community 11 (size 23) ---
+  sample labels: ['package.json', 'dependencies', '@langchain/anthropic', '@langchain/core', '@langchain/openai', 'zod']
+  files: ['packages/ai/package.json']
+--- Community 12 (size 22) ---
+  sample labels: ['package.json', 'dependencies', 'fastify', '@fastify/cors', '@fastify/jwt', 'fastify-raw-body']
+  files: ['apps/api/package.json']
+--- Community 13 (size 21) ---
+  sample labels: ['graph-client.ts', 'GraphClient.buildUrl() (private)', '.getLastUsage()', 'GraphClientOptions', 'GraphRequestOptions', 'GraphResponse']
+  files: ['packages/social/src/graph-client.ts', 'packages/social/src/usage.test.ts', 'packages/social/src/usage.ts']
+--- Community 14 (size 20) ---
+  sample labels: ['AppShell.tsx', 'AppShell()', 'Header()', 'ROUTE_TITLES', 'TAB_ITEMS', 'TabBar()']
+  files: ['apps/miniapp/src/app/AppShell.tsx', 'apps/miniapp/src/app/AuthGate.tsx', 'apps/miniapp/src/app/HeaderContext.tsx']
+--- Community 15 (size 20) ---
+  sample labels: ['CheckCircleIcon()', 'RemoveIcon()', 'PostComposer.tsx', 'AssetDraft', 'CreatedPost', 'emptyAsset()']
+  files: ['apps/miniapp/src/app/icons.tsx', 'apps/miniapp/src/features/composer/PostComposer.test.tsx', 'apps/miniapp/src/features/composer/PostComposer.tsx']
+--- Community 16 (size 20) ---
+  sample labels: ['PublishPhotoParams', 'PublishPhotoResult', 'publishPhotoToFacebookPage()', 'publish-photo.test.ts', 'server', 'publish-photo test suite']
+  files: ['apps/trigger/src/tasks/publish-post.test.ts', 'apps/trigger/src/tasks/publish-post.ts', 'packages/social/src/errors.ts']
+--- Community 17 (size 20) ---
+  sample labels: ['package.json', 'dependencies', '@postauto/shared', 'zod', 'devDependencies', 'msw']
+  files: ['packages/social/package.json']
+--- Community 18 (size 20) ---
+  sample labels: ['package.json', 'dependencies', '@postauto/ai', '@postauto/db', '@postauto/render', '@postauto/shared']
+  files: ['.github/workflows/ci.yml', 'apps/trigger/package.json']
+--- Community 19 (size 19) ---
+  sample labels: ['DEFAULT_API_BASE_URL', 'Toast.tsx', 'Toast()', 'ToastProps', 'ConnectFacebookButton.tsx', 'ConnectFacebookButtonProps']
+  files: ['apps/miniapp/src/app/Toast.tsx', 'apps/miniapp/src/app/api-config.ts', 'apps/miniapp/src/features/onboarding/ConnectFacebookButton.tsx']
+--- Community 20 (size 18) ---
+  sample labels: ['AuthGate.tsx', 'AuthContext', 'AuthGateProps', 'AuthResponse', 'AuthState', 'AuthUser']
+  files: ['apps/miniapp/src/app/AuthGate.test.tsx', 'apps/miniapp/src/app/AuthGate.tsx', 'apps/miniapp/src/features/onboarding/ConnectFacebookButton.test.tsx']
+--- Community 21 (size 18) ---
+  sample labels: ['publish-photo.ts', 'PublishPhotoResponse', 'publish-photo.ts', 'CreateMediaContainerResponse', 'PublishInstagramPhotoParams', 'PublishInstagramPhotoResult']
+  files: ['PLAN.md', 'packages/social/src/facebook/publish-photo.ts', 'packages/social/src/graph-client.test.ts']
+--- Community 22 (size 18) ---
+  sample labels: ['package.json', 'dependencies', 'zod', 'devDependencies', '@postauto/config', '@types/node']
+  files: ['packages/shared/package.json']
+--- Community 23 (size 17) ---
+  sample labels: ['business_members table', 'businesses table', 'oauth_states table', 'post_platform_variants table', 'post_source_assets table', 'posts table']
+  files: ['packages/db/prisma/migrations/20260718061912_init_m1_core_tables/migration.sql', 'packages/db/prisma/migrations/20260719000000_add_rendered_slides/migration.sql', 'packages/db/prisma/migrations/20260719120000_add_m3_inbox_ai_webhook_tables/migration.sql']
+--- Community 24 (size 17) ---
+  sample labels: ['AuthGate()', 'TelegramWebApp', 'theme.tsx', 'resolveInitialTheme()', 'ThemeContext', 'ThemeName']
+  files: ['apps/miniapp/index.html', 'apps/miniapp/src/app/AuthGate.tsx', 'apps/miniapp/src/app/theme.tsx']
+--- Community 25 (size 17) ---
+  sample labels: ['env.ts', 'loadEnv()', 'env.ts', 'loadEnv()', 'env.ts', 'ApiEnv']
+  files: ['apps/api/src/env.ts', 'apps/trigger/src/env.ts', 'packages/shared/src/env.test.ts']
+--- Community 26 (size 16) ---
+  sample labels: ['fetch-engagement.ts', 'FacebookPostEngagementResponse', 'fetchFacebookPostEngagement()', 'FetchFacebookPostEngagementParams', 'fetch-engagement.test.ts', 'server']
+  files: ['packages/social/src/facebook/fetch-engagement.test.ts', 'packages/social/src/facebook/fetch-engagement.ts', 'packages/social/src/graph-client.test.ts']
+--- Community 27 (size 15) ---
+  sample labels: ['devDependencies', 'eslint-plugin-react-hooks', 'eslint-plugin-react-refresh', 'jsdom', 'tailwindcss', '@tailwindcss/vite']
+  files: ['apps/miniapp/package.json']
+--- Community 28 (size 14) ---
+  sample labels: ['Dashboard.tsx', 'AnalyticsPlatform', 'AnalyticsResponse', 'Dashboard()', 'DashboardProps', 'EngagementTotals']
+  files: ['apps/miniapp/src/features/analytics/Dashboard.test.tsx', 'apps/miniapp/src/features/analytics/Dashboard.tsx']
+--- Community 29 (size 14) ---
+  sample labels: ['index.ts', 'webhooks.ts', 'webhooks.test.ts', 'signPayload()', 'verifyMetaWebhookSignature test suite', 'verifyMetaWebhookSignature()']
+  files: ['packages/social/src/index.ts', 'packages/social/src/threads/publish-post.test.ts', 'packages/social/src/threads/publish-post.ts']
+--- Community 30 (size 13) ---
+  sample labels: ['api-config.ts', 'HeaderContext.tsx', 'HeaderContext', 'HeaderContextValue', 'HeaderOverride', 'useHeaderContext()']
+  files: ['apps/miniapp/src/app/HeaderContext.tsx', 'apps/miniapp/src/app/api-config.ts', 'apps/miniapp/src/features/inbox/InboxScreen.tsx']
+--- Community 31 (size 13) ---
+  sample labels: ['TabMarketplaceIcon()', 'MarketplacePhoto.ts', 'format-listing.ts', 'routes.tsx', 'analyticsRoute', 'composerRoute']
+  files: ['apps/miniapp/src/app/icons.tsx', 'apps/miniapp/src/routes.tsx', 'packages/render/MarketplacePhoto.ts']
+--- Community 32 (size 13) ---
+  sample labels: ['Meta Graph API Error Handling Docs', 'errors.ts', 'AUTH_ERROR_CODES', 'buildGraphApiError()', 'classifyGraphErrorCode()', 'classifyGraphErrorStatus()']
+  files: ['packages/social/src/errors.test.ts', 'packages/social/src/errors.ts']
+--- Community 33 (size 12) ---
+  sample labels: ['Migration: init M1 core tables', 'Migration: add rendered_slides', 'Migration: add M3 inbox/AI/webhook tables', 'Migration: add engagement_snapshots', 'AI auto-reply pipeline (LangChain, provider-agnostic)', 'Carousel/slide rendering (Satori + resvg)']
+  files: ['PLAN.md', 'packages/db/prisma/migrations/20260718061912_init_m1_core_tables/migration.sql', 'packages/db/prisma/migrations/20260719000000_add_rendered_slides/migration.sql']
+--- Community 34 (size 11) ---
+  sample labels: ['tsconfig.json', 'tsconfig.build.json', 'exclude', 'extends', 'compilerOptions', 'declaration']
+  files: ['apps/api/tsconfig.build.json', 'apps/api/tsconfig.json']
+--- Community 35 (size 11) ---
+  sample labels: ['tsconfig.json', 'tsconfig.build.json', 'exclude', 'extends', 'compilerOptions', 'declaration']
+  files: ['packages/render/tsconfig.build.json', 'packages/render/tsconfig.json']
+--- Community 36 (size 10) ---
+  sample labels: ['package.json', 'files', 'name', 'private', 'scripts', 'format:check']
+  files: ['packages/config/package.json', 'pnpm-workspace.yaml']
+--- Community 37 (size 10) ---
+  sample labels: ['Rationale: notes for the autonomous build loop (credential-gated task policy)', 'Hosting architecture rationale (Neon/Railway/Vercel/Trigger.dev Cloud)', 'Monorepo layout (apps/ + packages/, pnpm+Turborepo)', 'Phased build plan (M0-M5)', 'Verification strategy (Trigger.dev dev mode, Meta Dev Mode, mocked CI)', 'Rationale: credential_gated task mock-first policy']
+  files: ['PLAN.md', 'README.md', 'prd.json']
+--- Community 38 (size 9) ---
+  sample labels: ['package.json', 'dependencies', 'react', 'react-dom', '@tanstack/react-router', 'name']
+  files: ['apps/miniapp/package.json']
+--- Community 39 (size 9) ---
+  sample labels: ['HomeScreen.tsx', 'AccountsStatus', 'HomeScreen()', 'HomeScreenProps', 'InboxCountResponse', 'HomeScreen.test.tsx']
+  files: ['apps/miniapp/src/features/onboarding/HomeScreen.test.tsx', 'apps/miniapp/src/features/onboarding/HomeScreen.tsx']
+--- Community 40 (size 9) ---
+  sample labels: ['package.json', 'dependencies', '@resvg/resvg-js', 'satori', 'exports', 'name']
+  files: ['packages/render/package.json']
+--- Community 41 (size 8) ---
+  sample labels: ['tsconfig.json', 'compilerOptions', 'declaration', 'noEmit', 'outDir', 'rootDir']
+  files: ['packages/ai/tsconfig.json']
+--- Community 42 (size 8) ---
+  sample labels: ['CarouselEditor.tsx', 'CarouselEditor()', 'CarouselEditorProps', 'CarouselSlideDraft', 'moveItem()', 'CarouselEditor.test.tsx']
+  files: ['apps/miniapp/src/features/composer/CarouselEditor.test.tsx', 'apps/miniapp/src/features/composer/CarouselEditor.tsx', 'apps/miniapp/src/features/composer/PostComposer.tsx']
+--- Community 43 (size 8) ---
+  sample labels: ['package.json', 'dependencies', '@prisma/client', 'exports', 'name', 'private']
+  files: ['packages/db/package.json']
+--- Community 44 (size 8) ---
+  sample labels: ['eslint.config.js', '@postauto/config', 'tsconfig.node.json', 'compilerOptions', 'types', 'extends']
+  files: ['apps/miniapp/eslint.config.js', 'apps/miniapp/package.json', 'apps/miniapp/tsconfig.node.json']
+--- Community 45 (size 8) ---
+  sample labels: ['tsconfig.json', 'compilerOptions', 'declaration', 'noEmit', 'outDir', 'rootDir']
+  files: ['packages/shared/tsconfig.json']
+--- Community 46 (size 7) ---
+  sample labels: ['devDependencies', 'msw', '@postauto/config', 'tsx', '@types/node', 'typescript']
+  files: ['apps/api/package.json']
+--- Community 47 (size 7) ---
+  sample labels: ['devDependencies', 'eslint', 'eslint-config-prettier', '@eslint/js', 'prettier', 'typescript']
+  files: ['packages/config/package.json']
+--- Community 48 (size 7) ---
+  sample labels: ['scripts', 'build', 'generate', 'lint', 'migrate:dev', 'test']
+  files: ['packages/db/package.json']
+--- Community 49 (size 7) ---
+  sample labels: ['scripts', 'build', 'dev', 'lint', 'preview', 'test']
+  files: ['apps/miniapp/package.json']
+--- Community 50 (size 7) ---
+  sample labels: ['tsconfig.json', 'compilerOptions', 'jsx', 'lib', 'types', 'extends']
+  files: ['apps/miniapp/tsconfig.json']
+--- Community 51 (size 7) ---
+  sample labels: ['tsconfig.json', 'compilerOptions', 'declaration', 'noEmit', 'outDir', 'extends']
+  files: ['apps/trigger/tsconfig.json']
+--- Community 52 (size 6) ---
+  sample labels: ['devDependencies', '@postauto/config', 'prisma', '@types/node', 'typescript', 'vitest']
+  files: ['packages/db/package.json']
+--- Community 53 (size 6) ---
+  sample labels: ['devDependencies', '@postauto/config', '@types/node', '@types/react', 'typescript', 'vitest']
+  files: ['packages/render/package.json']
+--- Community 54 (size 6) ---
+  sample labels: ['devDependencies', '@postauto/config', '@trigger.dev/build', '@types/node', 'typescript', 'vitest']
+  files: ['apps/trigger/package.json']
+--- Community 55 (size 5) ---
+  sample labels: ['scripts', 'build', 'lint', 'test', 'typecheck']
+  files: ['packages/render/package.json']
+--- Community 56 (size 5) ---
+  sample labels: ['hello-world.ts', 'buildGreeting()', 'HelloWorldPayload', 'helloWorldTask', 'hello-world.test.ts']
+  files: ['apps/trigger/src/tasks/hello-world.test.ts', 'apps/trigger/src/tasks/hello-world.ts']
+--- Community 57 (size 4) ---
+  sample labels: ['settings.json', 'permissions', 'allow', 'deny']
+  files: ['.claude/settings.json']
+--- Community 58 (size 4) ---
+  sample labels: ['exports', './eslint', './prettier', './tsconfig.base.json']
+  files: ['packages/config/package.json']
+--- Community 59 (size 4) ---
+  sample labels: ['prd.json', 'notes', 'plan_file', 'tasks']
+  files: ['prd.json']
+--- Community 60 (size 3) ---
+  sample labels: ['tsconfig.build.json', 'exclude', 'extends']
+  files: ['packages/ai/tsconfig.build.json']
+--- Community 61 (size 3) ---
+  sample labels: ['Mini app frontend stack (React+Vite+telegram-apps SDK+Tailwind+TanStack)', 'Telegram initData authentication flow', 'Rationale: AuthGate avoids persisting JWT, re-sends fresh initData on relaunch']
+  files: ['PLAN.md', 'progress.txt']
+--- Community 62 (size 3) ---
+  sample labels: ['ralph.sh', 'next_task_id()', 'ralph.sh script']
+  files: ['ralph.sh']
+--- Community 63 (size 3) ---
+  sample labels: ['tsconfig.build.json', 'exclude', 'extends']
+  files: ['packages/shared/tsconfig.build.json']
+--- Community 64 (size 3) ---
+  sample labels: ['tsconfig.build.json', 'exclude', 'extends']
+  files: ['apps/trigger/tsconfig.build.json']
+--- Community 65 (size 2) ---
+  sample labels: ['vitest.config.ts', 'test-setup.ts']
+  files: ['apps/miniapp/src/test-setup.ts', 'apps/miniapp/vitest.config.ts']
+--- Community 66 (size 2) ---
+  sample labels: ['Root workspace package.json', 'Turborepo task pipeline (build/dev/test/lint/typecheck)']
+  files: ['package.json', 'turbo.json']
+--- Community 67 (size 2) ---
+  sample labels: ['@postauto/shared package', '@postauto/social package']
+  files: ['packages/shared/package.json', 'packages/social/package.json']
+--- Community 68 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['packages/ai/eslint.config.js']
+--- Community 69 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['packages/ai/vitest.config.ts']
+--- Community 70 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['apps/api/eslint.config.js']
+--- Community 71 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['apps/api/vitest.config.ts']
+--- Community 72 (size 1) ---
+  sample labels: ['PROD_FALLBACK_API_BASE_URL']
+  files: ['apps/miniapp/src/app/api-config.ts']
+--- Community 73 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['packages/config/eslint.config.js']
+--- Community 74 (size 1) ---
+  sample labels: ['prettier.config.js']
+  files: ['packages/config/prettier.config.js']
+--- Community 75 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['packages/db/eslint.config.js']
+--- Community 76 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['packages/db/vitest.config.ts']
+--- Community 77 (size 1) ---
+  sample labels: ['vite.config.ts']
+  files: ['apps/miniapp/vite.config.ts']
+--- Community 78 (size 1) ---
+  sample labels: ['PostAuto — Ethiopian SMB retail operating system']
+  files: ['PLAN.md']
+--- Community 79 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['packages/render/eslint.config.js']
+--- Community 80 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['packages/render/vitest.config.ts']
+--- Community 81 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['packages/shared/eslint.config.js']
+--- Community 82 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['packages/shared/vitest.config.ts']
+--- Community 83 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['packages/social/eslint.config.js']
+--- Community 84 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['packages/social/vitest.config.ts']
+--- Community 85 (size 1) ---
+  sample labels: ['TELEGRAM_INIT_DATA_MAX_AGE_SECONDS']
+  files: ['packages/shared/src/constants.ts']
+--- Community 86 (size 1) ---
+  sample labels: ['eslint.config.js']
+  files: ['apps/trigger/eslint.config.js']
+--- Community 87 (size 1) ---
+  sample labels: ['vitest.config.ts']
+  files: ['apps/trigger/vitest.config.ts']
