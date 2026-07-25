@@ -23,16 +23,24 @@ function buildPost(overrides: Partial<RenderSlidesPost> = {}): RenderSlidesPost 
   };
 }
 
-function buildDeps(
-  overrides: Partial<{ post: RenderSlidesPost | null }> = {},
-): { deps: RenderSlidesDeps; findUnique: ReturnType<typeof vi.fn>; createMany: ReturnType<typeof vi.fn> } {
+function buildDeps(overrides: Partial<{ post: RenderSlidesPost | null }> = {}): {
+  deps: RenderSlidesDeps;
+  findUnique: ReturnType<typeof vi.fn>;
+  createMany: ReturnType<typeof vi.fn>;
+  updateManyVariants: ReturnType<typeof vi.fn>;
+} {
   const post = "post" in overrides ? overrides.post : buildPost();
   const findUnique = vi.fn().mockResolvedValue(post);
   const createMany = vi.fn().mockResolvedValue(undefined);
+  const updateManyVariants = vi.fn().mockResolvedValue(undefined);
   let renderCallIndex = 0;
 
   const deps: RenderSlidesDeps = {
-    store: { post: { findUnique }, renderedSlide: { createMany } },
+    store: {
+      post: { findUnique },
+      renderedSlide: { createMany },
+      postPlatformVariant: { updateMany: updateManyVariants },
+    },
     storage: { upload: vi.fn() },
     fonts: [],
     render: vi.fn(async (params) => {
@@ -46,7 +54,7 @@ function buildDeps(
     }),
   };
 
-  return { deps, findUnique, createMany };
+  return { deps, findUnique, createMany, updateManyVariants };
 }
 
 describe("buildSlides", () => {
@@ -176,6 +184,57 @@ describe("runRenderSlides", () => {
     const renderMock = deps.render as ReturnType<typeof vi.fn>;
     const treePassedToRender = renderMock.mock.calls[0]?.[0].tree;
     expect(JSON.stringify(treePassedToRender)).toContain("#d1495b");
+  });
+
+  it("updates each platform's pending variants with the rendered slide urls at that platform's primary dimension", async () => {
+    const { deps, updateManyVariants } = buildDeps();
+
+    const rows = await runRenderSlides(deps, { postId: "post_1", templateId: "single-product" });
+
+    expect(updateManyVariants).toHaveBeenCalledTimes(3);
+    for (const platform of ["facebook_page", "instagram_business", "threads"] as const) {
+      // facebook_page's primary dimension is landscape (1200x628, first in listPlatformDimensions);
+      // instagram_business/threads' is portrait (1080x1350) -- see platform-dimensions.ts.
+      const primaryWidth = platform === "facebook_page" ? 1200 : 1080;
+      const primaryHeight = platform === "facebook_page" ? 628 : 1350;
+      const expectedUrl = rows.find(
+        (row) => row.platform === platform && row.width === primaryWidth && row.height === primaryHeight,
+      )!.fileUrl;
+      expect(updateManyVariants).toHaveBeenCalledWith({
+        where: { postId: "post_1", platform, variantStatus: "pending" },
+        data: { mediaUrls: [expectedUrl] },
+      });
+    }
+  });
+
+  it("orders a carousel's mediaUrls by slideIndex (cover first, then details)", async () => {
+    const post = buildPost({
+      sourceAssets: [
+        { id: "a", rawUrl: "https://cdn.test/1.jpg", productName: "Scarf", price: 850, description: null, orderIndex: 0 },
+        { id: "b", rawUrl: "https://cdn.test/2.jpg", productName: "Shawl", price: 950, description: null, orderIndex: 1 },
+      ],
+    });
+    const { deps, updateManyVariants } = buildDeps({ post });
+
+    const rows = await runRenderSlides(deps, { postId: "post_1", templateId: "carousel", platforms: ["threads"] });
+
+    const coverUrl = rows.find((row) => row.slideIndex === 0 && row.width === 1080 && row.height === 1350)!.fileUrl;
+    const detailUrl = rows.find((row) => row.slideIndex === 1 && row.width === 1080 && row.height === 1350)!.fileUrl;
+    expect(updateManyVariants).toHaveBeenCalledWith({
+      where: { postId: "post_1", platform: "threads", variantStatus: "pending" },
+      data: { mediaUrls: [coverUrl, detailUrl] },
+    });
+  });
+
+  it("does not touch post_platform_variants for platforms that weren't rendered", async () => {
+    const { deps, updateManyVariants } = buildDeps();
+
+    await runRenderSlides(deps, { postId: "post_1", templateId: "single-product", platforms: ["facebook_page"] });
+
+    expect(updateManyVariants).toHaveBeenCalledTimes(1);
+    expect(updateManyVariants).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ platform: "facebook_page" }) }),
+    );
   });
 
   it("falls back to a default primary color when brandColors is missing or malformed", async () => {

@@ -53,15 +53,19 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1): T[] {
 
 /**
  * Draft post creation form per PLAN.md's M1 composer scope: caption plus one
- * or more source images (entered by URL — there's no upload/object-storage
- * pipeline until M2's render package), each optionally carrying a product
- * name/price/description that post_source_assets reserves room for. Also
- * lets the caller pick which of the business's connected accounts to target
- * (a business can have several Facebook Pages, so this is a specific
- * social_account, not just "the platform") -- "Save draft" persists that
- * choice as pending post_platform_variants without publishing; "Publish now"
- * does the same and then calls POST /posts/:id/publish, which enqueues
- * apps/trigger's publish-post task per targeted account.
+ * or more source images (entered by URL — there's still no phone-camera
+ * upload UI, just a pasted link per image), each optionally carrying a
+ * product name/price/description that post_source_assets reserves room for.
+ * The selected template is sent to POST /posts as `templateId`, which
+ * best-effort enqueues apps/trigger's render-slides task to replace the
+ * targeted accounts' raw pasted image with a branded rendered slide before
+ * publish -- see render-slides.ts. Also lets the caller pick which of the
+ * business's connected accounts to target (a business can have several
+ * Facebook Pages, so this is a specific social_account, not just "the
+ * platform") -- "Save draft" persists that choice as pending
+ * post_platform_variants without publishing; "Publish now" does the same and
+ * then calls POST /posts/:id/publish, which enqueues apps/trigger's
+ * publish-post task per targeted account.
  */
 export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposerProps) {
   const { token } = useAuth();
@@ -152,7 +156,7 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
             price: asset.price.trim().length > 0 ? Number(asset.price) : undefined,
             description: asset.description.trim().length > 0 ? asset.description.trim() : undefined,
           })),
-          ...(selectedAccountIds.size > 0 ? { targetAccountIds: [...selectedAccountIds] } : {}),
+          ...(selectedAccountIds.size > 0 ? { targetAccountIds: [...selectedAccountIds], templateId: template } : {}),
         }),
       });
 

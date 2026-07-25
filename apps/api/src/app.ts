@@ -36,6 +36,8 @@ export interface BuildAppOptions {
   enqueueProcessMetaWebhook?: WebhooksMetaRoutesOptions["enqueueProcessMetaWebhook"];
   /** Injectable for tests; forwarded to registerPostsRoutes. */
   enqueuePublishPost?: PostsRoutesOptions["enqueuePublishPost"];
+  /** Injectable for tests; forwarded to registerPostsRoutes. */
+  enqueueRenderSlides?: PostsRoutesOptions["enqueueRenderSlides"];
 }
 
 /**
@@ -88,7 +90,11 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     now: options.now,
   });
 
-  registerPostsRoutes(app, { prisma: options.prisma, enqueuePublishPost: options.enqueuePublishPost });
+  registerPostsRoutes(app, {
+    prisma: options.prisma,
+    enqueuePublishPost: options.enqueuePublishPost,
+    enqueueRenderSlides: options.enqueueRenderSlides,
+  });
 
   registerAnalyticsRoutes(app, { prisma: options.prisma });
 

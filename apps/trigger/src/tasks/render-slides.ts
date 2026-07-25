@@ -4,6 +4,7 @@ import {
   CarouselDetailSlide,
   LocalFilesystemStorage,
   PriceHighlightSlide,
+  S3ObjectStorage,
   SingleProductSlide,
   listPlatformDimensions,
   loadDefaultFonts,
@@ -17,6 +18,7 @@ import {
 } from "@postauto/render";
 import type { Platform as DbPlatform } from "@postauto/shared";
 import { task } from "@trigger.dev/sdk";
+import { loadEnv, type TriggerEnv } from "../env.js";
 
 export type SlideTemplateId = "single-product" | "price-highlight" | "carousel";
 
@@ -93,6 +95,19 @@ export interface RenderSlidesStore {
   };
   renderedSlide: {
     createMany(args: { data: RenderedSlideRow[] }): Promise<unknown>;
+  };
+  /**
+   * Swaps in the branded rendered-slide URLs for whichever post_platform_variants
+   * are still `pending` (i.e. not already published/failed/mid-publish) once
+   * this task finishes rendering, replacing the raw pasted source-asset URLs
+   * POST /posts wrote as a fallback. Scoped by platform (not variant id)
+   * since one render-slides run covers every targeted platform at once.
+   */
+  postPlatformVariant: {
+    updateMany(args: {
+      where: { postId: string; platform: DbPlatform; variantStatus: "pending" };
+      data: { mediaUrls: string[] };
+    }): Promise<unknown>;
   };
 }
 
@@ -273,27 +288,66 @@ export async function runRenderSlides(
 
   await deps.store.renderedSlide.createMany({ data: rows });
 
+  // For each rendered platform, point that platform's still-pending variants
+  // at the branded slide URLs (one per slideIndex, in order) rendered at the
+  // platform's primary aspect ratio -- listPlatformDimensions returns FB's
+  // landscape and IG/Threads' portrait first, matching Meta's recommended
+  // default for each. publish-post.ts only reads mediaUrls[0] today (no
+  // multi-image carousel publish yet), but mediaUrls keeps the full ordered
+  // set so that support can land later without touching this task again.
+  for (const platform of platforms) {
+    const primary = listPlatformDimensions(DB_TO_RENDER_PLATFORM[platform])[0]!;
+    const mediaUrls = rows
+      .filter((row) => row.platform === platform && row.width === primary.width && row.height === primary.height)
+      .sort((a, b) => a.slideIndex - b.slideIndex)
+      .map((row) => row.fileUrl);
+
+    if (mediaUrls.length > 0) {
+      await deps.store.postPlatformVariant.updateMany({
+        where: { postId: post.id, platform, variantStatus: "pending" },
+        data: { mediaUrls },
+      });
+    }
+  }
+
   return rows;
 }
 
-/**
- * `rendered_slides` doesn't have a Prisma model yet -- that's m2-08's
- * migration, and it isn't a dependency of this task per prd.json. This
- * default throws loudly instead of silently doing nothing, so a real run
- * fails fast with a clear pointer rather than looking like it succeeded.
- * Swap it for a real `prisma.renderedSlide`-backed implementation once
- * m2-08 lands.
- */
-const notYetPersistedRenderedSlideStore: RenderSlidesStore["renderedSlide"] = {
-  createMany() {
-    return Promise.reject(
-      new Error(
-        "rendered_slides persistence isn't wired yet: the RenderedSlide Prisma model doesn't exist until " +
-          "m2-08's migration lands. See progress.txt (m2-06) for details.",
-      ),
-    );
-  },
+const prismaRenderedSlideStore: RenderSlidesStore["renderedSlide"] = {
+  createMany: (args) => prisma.renderedSlide.createMany({ data: args.data }),
 };
+
+const prismaPostPlatformVariantStore: RenderSlidesStore["postPlatformVariant"] = {
+  updateMany: (args) => prisma.postPlatformVariant.updateMany({ where: args.where, data: args.data }),
+};
+
+/**
+ * Chooses the rendered-slide storage backend from env: S3-compatible (AWS
+ * S3, Cloudflare R2, MinIO, ...) when RENDER_STORAGE_BUCKET is configured,
+ * else local disk (dev-only -- see RENDER_STORAGE_DIR's doc comment in
+ * env.ts for why that's unsuitable in production).
+ */
+export function buildObjectStorage(env: TriggerEnv): ObjectStorage {
+  if (env.RENDER_STORAGE_BUCKET) {
+    // env.ts's schema-level refine already guarantees RENDER_STORAGE_PUBLIC_URL_BASE
+    // is set whenever RENDER_STORAGE_BUCKET is, so this is just narrowing the type.
+    if (!env.RENDER_STORAGE_PUBLIC_URL_BASE) {
+      throw new Error("RENDER_STORAGE_PUBLIC_URL_BASE is required when RENDER_STORAGE_BUCKET is set");
+    }
+    return new S3ObjectStorage({
+      bucket: env.RENDER_STORAGE_BUCKET,
+      region: env.RENDER_STORAGE_REGION,
+      endpoint: env.RENDER_STORAGE_ENDPOINT,
+      forcePathStyle: env.RENDER_STORAGE_FORCE_PATH_STYLE === "true",
+      publicUrlBase: env.RENDER_STORAGE_PUBLIC_URL_BASE,
+      credentials:
+        env.RENDER_STORAGE_ACCESS_KEY_ID && env.RENDER_STORAGE_SECRET_ACCESS_KEY
+          ? { accessKeyId: env.RENDER_STORAGE_ACCESS_KEY_ID, secretAccessKey: env.RENDER_STORAGE_SECRET_ACCESS_KEY }
+          : undefined,
+    });
+  }
+  return new LocalFilesystemStorage({ baseDir: env.RENDER_STORAGE_DIR ?? "/tmp/postauto-render" });
+}
 
 const prismaPostStore: RenderSlidesStore["post"] = {
   async findUnique(args) {
@@ -327,14 +381,17 @@ const prismaPostStore: RenderSlidesStore["post"] = {
 export const renderSlidesTask = task({
   id: "render-slides",
   run: async (payload: RenderSlidesPayload) => {
+    const env = loadEnv();
     const fonts = await loadDefaultFonts();
-    const storage = new LocalFilesystemStorage({
-      baseDir: process.env.RENDER_STORAGE_DIR ?? "/tmp/postauto-render",
-    });
+    const storage = buildObjectStorage(env);
 
     return runRenderSlides(
       {
-        store: { post: prismaPostStore, renderedSlide: notYetPersistedRenderedSlideStore },
+        store: {
+          post: prismaPostStore,
+          renderedSlide: prismaRenderedSlideStore,
+          postPlatformVariant: prismaPostPlatformVariantStore,
+        },
         storage,
         fonts,
         render: renderSlide,

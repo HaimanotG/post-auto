@@ -199,6 +199,7 @@ describe("PostComposer", () => {
         captionMaster: undefined,
         assets: [{ rawUrl: "https://cdn.test/tomatoes.jpg" }],
         targetAccountIds: ["acct_1"],
+        templateId: "single-product",
       });
       return new Response(
         JSON.stringify({ id: "post_1", status: "draft", captionMaster: null, sourceAssets: [] }),

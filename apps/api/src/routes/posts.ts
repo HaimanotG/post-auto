@@ -4,6 +4,11 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireAuthenticatedUser, resolveOwnedBusiness, type BusinessContextStore } from "../lib/business-context.js";
 
+// Kept as a literal union (not imported from apps/trigger's SlideTemplateId)
+// so apps/api doesn't depend on apps/trigger -- same reasoning as
+// enqueuePublishPost triggering by task-id string below.
+const SLIDE_TEMPLATE_IDS = ["single-product", "price-highlight", "carousel"] as const;
+
 const createPostBodySchema = z.object({
   captionMaster: z.string().max(5000).optional(),
   assets: z
@@ -20,6 +25,10 @@ const createPostBodySchema = z.object({
   // the composer can still save a plain draft before deciding where to post;
   // POST /posts/:id/publish enqueues the actual publish once targets exist.
   targetAccountIds: z.array(z.string()).optional(),
+  // When provided alongside targetAccountIds, best-effort enqueues
+  // apps/trigger's render-slides task to replace the targeted variants' raw
+  // pasted asset URLs with branded rendered slides (see render-slides.ts).
+  templateId: z.enum(SLIDE_TEMPLATE_IDS).optional(),
 });
 
 export type CreatePostBody = z.infer<typeof createPostBodySchema>;
@@ -119,10 +128,25 @@ export interface PostsRoutesOptions {
    * apps/trigger, matching routes/webhooks-meta.ts's enqueue pattern.
    */
   enqueuePublishPost?: (postPlatformVariantId: string) => Promise<unknown>;
+  /**
+   * Injectable for tests; defaults to enqueuing apps/trigger's
+   * "render-slides" task. Best-effort -- a failed enqueue is logged and
+   * swallowed, leaving the newly created variants targeting their raw
+   * pasted asset URLs (still publishable) rather than failing the draft save.
+   */
+  enqueueRenderSlides?: (payload: { postId: string; templateId: string; platforms: Platform[] }) => Promise<unknown>;
 }
 
 async function defaultEnqueuePublishPost(postPlatformVariantId: string): Promise<unknown> {
   return tasks.trigger("publish-post", { postPlatformVariantId });
+}
+
+async function defaultEnqueueRenderSlides(payload: {
+  postId: string;
+  templateId: string;
+  platforms: Platform[];
+}): Promise<unknown> {
+  return tasks.trigger("render-slides", payload);
 }
 
 function serializePost(post: StoredPost) {
@@ -167,6 +191,7 @@ const PUBLISHABLE_VARIANT_STATUSES = new Set(["pending", "failed"]);
  */
 export function registerPostsRoutes(app: FastifyInstance, options: PostsRoutesOptions): void {
   const enqueuePublishPost = options.enqueuePublishPost ?? defaultEnqueuePublishPost;
+  const enqueueRenderSlides = options.enqueueRenderSlides ?? defaultEnqueueRenderSlides;
 
   app.post("/posts", async (request, reply) => {
     const user = await requireAuthenticatedUser(request, reply);
@@ -226,6 +251,15 @@ export function registerPostsRoutes(app: FastifyInstance, options: PostsRoutesOp
       },
       include: { sourceAssets: true, platformVariants: true },
     });
+
+    if (body.templateId && platformVariants.length > 0) {
+      const targetPlatforms = [...new Set(platformVariants.map((variant) => variant.platform))];
+      try {
+        await enqueueRenderSlides({ postId: post.id, templateId: body.templateId, platforms: targetPlatforms });
+      } catch (error) {
+        request.log.error(error, `Failed to enqueue render-slides for post ${post.id}`);
+      }
+    }
 
     await reply.code(201).send(serializePost(post));
   });

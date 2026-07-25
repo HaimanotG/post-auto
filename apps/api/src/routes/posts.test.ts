@@ -10,6 +10,7 @@ const FIXTURE_BASE_URL = "https://api.fixture.test";
 async function buildFixtureApp(
   prismaOverrides: Parameters<typeof createFixturePrismaStore>[0] = {},
   enqueuePublishPost?: (postPlatformVariantId: string) => Promise<unknown>,
+  enqueueRenderSlides?: (payload: { postId: string; templateId: string; platforms: string[] }) => Promise<unknown>,
 ) {
   const prisma = createFixturePrismaStore(prismaOverrides);
   const app = await buildApp({
@@ -23,6 +24,7 @@ async function buildFixtureApp(
     baseUrl: FIXTURE_BASE_URL,
     graphClient: new GraphClient({ baseUrl: "https://graph.test" }),
     enqueuePublishPost,
+    enqueueRenderSlides,
   });
 
   return { app, prisma };
@@ -251,6 +253,146 @@ describe("POST /posts", () => {
       { id: "variant_1", socialAccountId: "account_fb_1", platform: "facebook_page", variantStatus: "pending", errorMessage: null, externalPostId: null },
       { id: "variant_2", socialAccountId: "account_ig_1", platform: "instagram_business", variantStatus: "pending", errorMessage: null, externalPostId: null },
     ]);
+  });
+
+  it("enqueues render-slides when templateId is provided alongside targetAccountIds", async () => {
+    const enqueueRenderSlides = vi.fn().mockResolvedValue(undefined);
+    const postCreate = vi.fn().mockResolvedValue({
+      id: "post_3",
+      businessId: "biz_1",
+      status: "draft",
+      captionMaster: "New arrivals!",
+      createdAt: new Date("2026-07-25T09:00:00.000Z"),
+      sourceAssets: [
+        { id: "asset_4", rawUrl: "https://cdn.test/x.jpg", productName: null, price: null, description: null, orderIndex: 0 },
+      ],
+      platformVariants: [
+        { id: "variant_1", socialAccountId: "account_fb_1", platform: "facebook_page", variantStatus: "pending", errorMessage: null, externalPostId: null },
+        { id: "variant_2", socialAccountId: "account_ig_1", platform: "instagram_business", variantStatus: "pending", errorMessage: null, externalPostId: null },
+      ],
+    });
+
+    ({ app } = await buildFixtureApp(
+      {
+        business: { findFirst: vi.fn().mockResolvedValue({ id: "biz_1" }) },
+        socialAccount: {
+          findMany: vi.fn().mockResolvedValue([
+            { id: "account_fb_1", platform: "facebook_page", status: "active" },
+            { id: "account_ig_1", platform: "instagram_business", status: "active" },
+          ]),
+        },
+        post: { create: postCreate },
+      },
+      undefined,
+      enqueueRenderSlides,
+    ));
+    const token = await signJwt(app, { sub: "user_1", telegramUserId: "42" });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/posts",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        captionMaster: "New arrivals!",
+        assets: [{ rawUrl: "https://cdn.test/x.jpg" }],
+        targetAccountIds: ["account_fb_1", "account_ig_1"],
+        templateId: "single-product",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(enqueueRenderSlides).toHaveBeenCalledWith({
+      postId: "post_3",
+      templateId: "single-product",
+      platforms: ["facebook_page", "instagram_business"],
+    });
+  });
+
+  it("does not enqueue render-slides when templateId is omitted", async () => {
+    const enqueueRenderSlides = vi.fn().mockResolvedValue(undefined);
+    const postCreate = vi.fn().mockResolvedValue({
+      id: "post_3",
+      businessId: "biz_1",
+      status: "draft",
+      captionMaster: null,
+      createdAt: new Date(),
+      sourceAssets: [
+        { id: "asset_4", rawUrl: "https://cdn.test/x.jpg", productName: null, price: null, description: null, orderIndex: 0 },
+      ],
+      platformVariants: [
+        { id: "variant_1", socialAccountId: "account_fb_1", platform: "facebook_page", variantStatus: "pending", errorMessage: null, externalPostId: null },
+      ],
+    });
+
+    ({ app } = await buildFixtureApp(
+      {
+        business: { findFirst: vi.fn().mockResolvedValue({ id: "biz_1" }) },
+        socialAccount: {
+          findMany: vi.fn().mockResolvedValue([{ id: "account_fb_1", platform: "facebook_page", status: "active" }]),
+        },
+        post: { create: postCreate },
+      },
+      undefined,
+      enqueueRenderSlides,
+    ));
+    const token = await signJwt(app, { sub: "user_1", telegramUserId: "42" });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/posts",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        assets: [{ rawUrl: "https://cdn.test/x.jpg" }],
+        targetAccountIds: ["account_fb_1"],
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(enqueueRenderSlides).not.toHaveBeenCalled();
+  });
+
+  it("still saves the post when enqueuing render-slides fails", async () => {
+    const enqueueRenderSlides = vi.fn().mockRejectedValue(new Error("trigger.dev unavailable"));
+    const postCreate = vi.fn().mockResolvedValue({
+      id: "post_3",
+      businessId: "biz_1",
+      status: "draft",
+      captionMaster: null,
+      createdAt: new Date(),
+      sourceAssets: [
+        { id: "asset_4", rawUrl: "https://cdn.test/x.jpg", productName: null, price: null, description: null, orderIndex: 0 },
+      ],
+      platformVariants: [
+        { id: "variant_1", socialAccountId: "account_fb_1", platform: "facebook_page", variantStatus: "pending", errorMessage: null, externalPostId: null },
+      ],
+    });
+
+    ({ app } = await buildFixtureApp(
+      {
+        business: { findFirst: vi.fn().mockResolvedValue({ id: "biz_1" }) },
+        socialAccount: {
+          findMany: vi.fn().mockResolvedValue([{ id: "account_fb_1", platform: "facebook_page", status: "active" }]),
+        },
+        post: { create: postCreate },
+      },
+      undefined,
+      enqueueRenderSlides,
+    ));
+    const token = await signJwt(app, { sub: "user_1", telegramUserId: "42" });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/posts",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        assets: [{ rawUrl: "https://cdn.test/x.jpg" }],
+        targetAccountIds: ["account_fb_1"],
+        templateId: "carousel",
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().id).toBe("post_3");
   });
 
   it("rejects targetAccountIds that aren't active accounts on the caller's business", async () => {
