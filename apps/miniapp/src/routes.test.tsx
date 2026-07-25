@@ -96,13 +96,40 @@ describe("routes", () => {
     });
   });
 
-  it("renders the marketplace placeholder", async () => {
-    mockAuthenticatedFetch({});
+  it("renders the marketplace placeholder when no post is eligible yet", async () => {
+    mockAuthenticatedFetch({
+      "/marketplace/listing": () => new Response(JSON.stringify({ available: false }), { status: 200 }),
+    });
 
     await renderRoute("/marketplace");
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Marketplace" })).toBeInTheDocument();
+    });
+  });
+
+  it("renders PrepareListing from GET /marketplace/listing when a post is eligible", async () => {
+    mockAuthenticatedFetch({
+      "/marketplace/listing": () =>
+        new Response(
+          JSON.stringify({
+            available: true,
+            photoUrl: "https://cdn.test/photo.jpg",
+            listing: {
+              title: "Handwoven scarf",
+              priceText: "500 ETB",
+              description: "Soft cotton scarf",
+              listingText: "Handwoven scarf\n500 ETB\n\nSoft cotton scarf",
+            },
+          }),
+          { status: 200 },
+        ),
+    });
+
+    await renderRoute("/marketplace");
+
+    await waitFor(() => {
+      expect(screen.getByText("Handwoven scarf")).toBeInTheDocument();
     });
   });
 });

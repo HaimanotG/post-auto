@@ -9,7 +9,6 @@ import {
   GoodCheckIcon,
   InboxIcon,
   InstagramIcon,
-  PLATFORM_ICONS,
   ThreadsIcon,
 } from "../../app/icons";
 import { platformAccountLabel } from "../../app/platform-labels";
@@ -27,7 +26,6 @@ interface InboxCountResponse {
 type AccountsStatus = "loading" | "loaded" | "error";
 
 function AccountRow({ account }: { account: ConnectedSocialAccount }) {
-  const Icon = PLATFORM_ICONS[account.platform] ?? FacebookIcon;
   return (
     <div className="flex items-center gap-3 border-b border-pa-separator px-3.5 py-3.5 last:border-b-0">
       <div className="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-pa-bg">

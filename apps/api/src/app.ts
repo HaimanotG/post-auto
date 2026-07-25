@@ -6,12 +6,13 @@ import type { TelegramUserStore } from "./middleware/telegram-init-data.js";
 import { registerAnalyticsRoutes, type AnalyticsStore } from "./routes/analytics.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerInboxRoutes, type InboxStore } from "./routes/inbox.js";
+import { registerMarketplaceRoutes, type MarketplaceStore } from "./routes/marketplace.js";
 import { registerOAuthRoutes, type OAuthRoutesOptions, type OAuthStore } from "./routes/oauth.js";
 import { registerPostsRoutes, type PostsRoutesOptions, type PostStore } from "./routes/posts.js";
 import { registerWebhooksMetaRoutes, type WebhookEventStore, type WebhooksMetaRoutesOptions } from "./routes/webhooks-meta.js";
 
 export interface BuildAppOptions {
-  prisma: TelegramUserStore & OAuthStore & PostStore & WebhookEventStore & AnalyticsStore & InboxStore;
+  prisma: TelegramUserStore & OAuthStore & PostStore & WebhookEventStore & AnalyticsStore & InboxStore & MarketplaceStore;
   telegramBotToken: string;
   jwtSecret: string;
   metaAppId: string;
@@ -92,6 +93,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerAnalyticsRoutes(app, { prisma: options.prisma });
 
   registerInboxRoutes(app, { prisma: options.prisma });
+
+  registerMarketplaceRoutes(app, { prisma: options.prisma });
 
   registerWebhooksMetaRoutes(app, {
     prisma: options.prisma,

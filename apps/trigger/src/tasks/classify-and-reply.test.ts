@@ -5,12 +5,13 @@ interface BuildDepsOptions {
   message?: {
     id: string;
     body: string;
-    business: { name: string };
+    business: { name: string; telegramOwnerUserId: bigint };
     relatedPost: { captionMaster: string | null } | null;
   } | null;
   classification?: { intent: "price" | "availability" | "greeting" | "hours" | "other"; confidence: number };
   gate?: { decision: "auto_reply" | "escalate"; reason: "allowed" | "intent_not_allowlisted" | "below_confidence_threshold" };
   reply?: { reply: string };
+  notifySeller?: ReturnType<typeof vi.fn>;
 }
 
 function buildDeps(options: BuildDepsOptions = {}) {
@@ -19,7 +20,7 @@ function buildDeps(options: BuildDepsOptions = {}) {
       ? {
           id: "inbox_message_1",
           body: "How much is this?",
-          business: { name: "Boutique Addis" },
+          business: { name: "Boutique Addis", telegramOwnerUserId: 555666777n },
           relatedPost: { captionMaster: "New arrivals, ETB 500" },
         }
       : options.message;
@@ -42,6 +43,7 @@ function buildDeps(options: BuildDepsOptions = {}) {
   const gateIntentDecision = vi.fn().mockReturnValue(gate);
   const generateReply = vi.fn().mockResolvedValue(reply);
   const enqueuePublishReply = vi.fn().mockResolvedValue(undefined);
+  const notifySeller = options.notifySeller ?? vi.fn().mockResolvedValue(undefined);
 
   const deps: ClassifyAndReplyDeps = {
     store,
@@ -49,9 +51,10 @@ function buildDeps(options: BuildDepsOptions = {}) {
     gateIntentDecision,
     generateReply,
     enqueuePublishReply,
+    notifySeller,
   };
 
-  return { deps, store, classifyIntent, gateIntentDecision, generateReply, enqueuePublishReply };
+  return { deps, store, classifyIntent, gateIntentDecision, generateReply, enqueuePublishReply, notifySeller };
 }
 
 describe("runClassifyAndReply", () => {
@@ -107,8 +110,8 @@ describe("runClassifyAndReply", () => {
     });
   });
 
-  it("escalates without generating a reply or enqueuing publish-reply when the intent isn't allowlisted", async () => {
-    const { deps, store, generateReply, enqueuePublishReply } = buildDeps({
+  it("escalates without generating a reply or enqueuing publish-reply when the intent isn't allowlisted, and notifies the seller", async () => {
+    const { deps, store, generateReply, enqueuePublishReply, notifySeller } = buildDeps({
       classification: { intent: "other", confidence: 0.95 },
       gate: { decision: "escalate", reason: "intent_not_allowlisted" },
     });
@@ -133,6 +136,31 @@ describe("runClassifyAndReply", () => {
       where: { id: "inbox_message_1" },
       data: { status: "needs_attention" },
     });
+    expect(notifySeller).toHaveBeenCalledWith({
+      chatId: 555666777n,
+      text: expect.stringContaining("How much is this?"),
+    });
+  });
+
+  it("does not notify the seller on an auto_reply decision", async () => {
+    const { deps, notifySeller } = buildDeps();
+
+    await runClassifyAndReply(deps, { inboxMessageId: "inbox_message_1" });
+
+    expect(notifySeller).not.toHaveBeenCalled();
+  });
+
+  it("does not fail the run when notifying the seller fails", async () => {
+    const notifySeller = vi.fn().mockRejectedValue(new Error("telegram unreachable"));
+    const { deps } = buildDeps({
+      classification: { intent: "other", confidence: 0.95 },
+      gate: { decision: "escalate", reason: "intent_not_allowlisted" },
+      notifySeller,
+    });
+
+    const result = await runClassifyAndReply(deps, { inboxMessageId: "inbox_message_1" });
+
+    expect(result).toEqual({ decision: "escalate", aiReplyDecisionId: "ai_reply_decision_1" });
   });
 
   it("escalates below the confidence threshold, recording the gate's reasoning_snippet", async () => {
@@ -152,7 +180,12 @@ describe("runClassifyAndReply", () => {
 
   it("passes postCaption as undefined when the message has no related post", async () => {
     const { deps, classifyIntent, generateReply } = buildDeps({
-      message: { id: "inbox_message_1", body: "Hello!", business: { name: "Boutique Addis" }, relatedPost: null },
+      message: {
+        id: "inbox_message_1",
+        body: "Hello!",
+        business: { name: "Boutique Addis", telegramOwnerUserId: 555666777n },
+        relatedPost: null,
+      },
       classification: { intent: "greeting", confidence: 0.99 },
     });
 

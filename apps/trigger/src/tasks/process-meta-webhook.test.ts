@@ -260,11 +260,17 @@ describe("normalizeWebhookEventPayload", () => {
   });
 });
 
+const CREATED_TIMESTAMP = new Date("2026-07-25T10:00:00.000Z");
+const UPDATED_TIMESTAMP = new Date("2026-07-25T11:00:00.000Z");
+
 function buildDeps(
   overrides: Partial<{
     event: { id: string; platform: "facebook_page" | "instagram_business" | "threads"; rawPayload: unknown } | null;
     socialAccount: { id: string; businessId: string } | null;
     postPlatformVariant: { postId: string } | null;
+    /** Whether inboxMessage.upsert's mocked return simulates a freshly-created row (default) or a redelivered update. */
+    wasCreated: boolean;
+    enqueueClassifyAndReply: ReturnType<typeof vi.fn>;
   }> = {},
 ): {
   deps: ProcessMetaWebhookDeps;
@@ -274,6 +280,7 @@ function buildDeps(
     postPlatformVariant: { findFirst: ReturnType<typeof vi.fn> };
     inboxMessage: { upsert: ReturnType<typeof vi.fn> };
   };
+  enqueueClassifyAndReply: ReturnType<typeof vi.fn>;
 } {
   const event =
     "event" in overrides
@@ -298,12 +305,18 @@ function buildDeps(
         };
   const socialAccount = "socialAccount" in overrides ? overrides.socialAccount : { id: "social_account_1", businessId: "business_1" };
   const postPlatformVariant = "postPlatformVariant" in overrides ? overrides.postPlatformVariant : null;
+  const wasCreated = overrides.wasCreated ?? true;
 
   const webhookEventFindUnique = vi.fn().mockResolvedValue(event);
   const webhookEventUpdate = vi.fn().mockResolvedValue(undefined);
   const socialAccountFindFirst = vi.fn().mockResolvedValue(socialAccount);
   const postPlatformVariantFindFirst = vi.fn().mockResolvedValue(postPlatformVariant);
-  const inboxMessageUpsert = vi.fn().mockResolvedValue(undefined);
+  const inboxMessageUpsert = vi.fn().mockResolvedValue({
+    id: "inbox_message_1",
+    createdAt: CREATED_TIMESTAMP,
+    updatedAt: wasCreated ? CREATED_TIMESTAMP : UPDATED_TIMESTAMP,
+  });
+  const enqueueClassifyAndReply = overrides.enqueueClassifyAndReply ?? vi.fn().mockResolvedValue(undefined);
 
   const store = {
     webhookEvent: { findUnique: webhookEventFindUnique, update: webhookEventUpdate },
@@ -312,7 +325,11 @@ function buildDeps(
     inboxMessage: { upsert: inboxMessageUpsert },
   };
 
-  return { deps: { store: store as unknown as ProcessMetaWebhookStore }, store };
+  return {
+    deps: { store: store as unknown as ProcessMetaWebhookStore, enqueueClassifyAndReply },
+    store,
+    enqueueClassifyAndReply,
+  };
 }
 
 describe("runProcessMetaWebhook", () => {
@@ -351,6 +368,35 @@ describe("runProcessMetaWebhook", () => {
       },
       update: { senderName: null, senderUsername: null, body: "Hi", relatedPostId: null },
     });
+    expect(store.webhookEvent.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "webhook_event_1" },
+      data: { processingStatus: "processed" },
+    });
+  });
+
+  it("enqueues classify-and-reply for a newly created inbox message", async () => {
+    const { deps, enqueueClassifyAndReply } = buildDeps({ wasCreated: true });
+
+    await runProcessMetaWebhook(deps, { webhookEventId: "webhook_event_1" });
+
+    expect(enqueueClassifyAndReply).toHaveBeenCalledWith({ inboxMessageId: "inbox_message_1" });
+  });
+
+  it("does not enqueue classify-and-reply when the upsert only updated an existing message (redelivered webhook)", async () => {
+    const { deps, enqueueClassifyAndReply } = buildDeps({ wasCreated: false });
+
+    await runProcessMetaWebhook(deps, { webhookEventId: "webhook_event_1" });
+
+    expect(enqueueClassifyAndReply).not.toHaveBeenCalled();
+  });
+
+  it("does not fail the event when enqueuing classify-and-reply fails", async () => {
+    const enqueueClassifyAndReply = vi.fn().mockRejectedValue(new Error("trigger.dev unreachable"));
+    const { deps, store } = buildDeps({ wasCreated: true, enqueueClassifyAndReply });
+
+    const result = await runProcessMetaWebhook(deps, { webhookEventId: "webhook_event_1" });
+
+    expect(result).toEqual({ processed: 1, skipped: 0 });
     expect(store.webhookEvent.update).toHaveBeenNthCalledWith(2, {
       where: { id: "webhook_event_1" },
       data: { processingStatus: "processed" },

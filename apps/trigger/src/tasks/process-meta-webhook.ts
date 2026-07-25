@@ -1,6 +1,6 @@
 import { prisma } from "@postauto/db";
 import type { Platform } from "@postauto/shared";
-import { task } from "@trigger.dev/sdk";
+import { task, tasks } from "@trigger.dev/sdk";
 
 export type NormalizedInboxMessageType = "comment" | "mention" | "dm";
 
@@ -271,12 +271,19 @@ export interface ProcessMetaWebhookStore {
       where: { externalMessageId: string };
       create: InboxMessageWriteData;
       update: Partial<InboxMessageWriteData>;
-    }): Promise<unknown>;
+    }): Promise<{ id: string; createdAt: Date; updatedAt: Date }>;
   };
 }
 
 export interface ProcessMetaWebhookDeps {
   store: ProcessMetaWebhookStore;
+  /**
+   * Injectable for tests; defaults to enqueuing "classify-and-reply" via
+   * @trigger.dev/sdk, matching classify-and-reply.ts's own
+   * enqueuePublishReply convention. Triggering by task-id string keeps this
+   * task decoupled from classify-and-reply.ts's module.
+   */
+  enqueueClassifyAndReply: (payload: { inboxMessageId: string }) => Promise<unknown>;
 }
 
 /**
@@ -289,6 +296,14 @@ export interface ProcessMetaWebhookDeps {
  * disconnected) is skipped rather than failing the whole event. relatedPostId
  * is resolved best-effort from post_platform_variants.external_post_id per
  * PLAN.md's reserved posts.product_id join point; left null when no match.
+ *
+ * Only a freshly *created* inbox message enqueues classify-and-reply (the AI
+ * auto-reply pipeline) -- distinguished from an update by comparing the
+ * upserted row's createdAt/updatedAt, since Prisma sets both to the same
+ * instant on create but bumps only updatedAt on an update. Without this
+ * check, Meta's webhook redelivery (retries on non-200/timeout) would
+ * re-trigger AI classification and a duplicate reply for the same message
+ * every time it upserts the identical externalMessageId again.
  */
 export async function runProcessMetaWebhook(
   deps: ProcessMetaWebhookDeps,
@@ -324,7 +339,7 @@ export async function runProcessMetaWebhook(
         ? await deps.store.postPlatformVariant.findFirst({ where: { externalPostId: message.externalRelatedObjectId } })
         : null;
 
-      await deps.store.inboxMessage.upsert({
+      const upserted = await deps.store.inboxMessage.upsert({
         where: { externalMessageId: message.externalMessageId },
         create: {
           businessId: socialAccount.businessId,
@@ -345,6 +360,20 @@ export async function runProcessMetaWebhook(
           relatedPostId: relatedVariant?.postId ?? null,
         },
       });
+
+      const wasCreated = upserted.createdAt.getTime() === upserted.updatedAt.getTime();
+      if (wasCreated) {
+        // Best-effort: a failed enqueue must not fail (and thus retry) this
+        // whole task -- a retry would re-run this same upsert as an *update*
+        // (the row now exists), so wasCreated would be false next time and
+        // classify-and-reply would never fire at all. The inbox_messages row
+        // is already durably written either way.
+        try {
+          await deps.enqueueClassifyAndReply({ inboxMessageId: upserted.id });
+        } catch (error) {
+          console.error(`Failed to enqueue classify-and-reply for inbox message ${upserted.id}`, error);
+        }
+      }
       processed += 1;
     }
 
@@ -368,13 +397,18 @@ const prismaStore: ProcessMetaWebhookStore = {
     findFirst: (args) => prisma.postPlatformVariant.findFirst({ where: args.where, select: { postId: true } }),
   },
   inboxMessage: {
-    upsert: (args) => prisma.inboxMessage.upsert(args),
+    upsert: (args) =>
+      prisma.inboxMessage.upsert({ ...args, select: { id: true, createdAt: true, updatedAt: true } }),
   },
 };
+
+async function defaultEnqueueClassifyAndReply(payload: { inboxMessageId: string }): Promise<unknown> {
+  return tasks.trigger("classify-and-reply", payload);
+}
 
 export const processMetaWebhookTask = task({
   id: "process-meta-webhook",
   run: async (payload: ProcessMetaWebhookPayload) => {
-    return runProcessMetaWebhook({ store: prismaStore }, payload);
+    return runProcessMetaWebhook({ store: prismaStore, enqueueClassifyAndReply: defaultEnqueueClassifyAndReply }, payload);
   },
 });

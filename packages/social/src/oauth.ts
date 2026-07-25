@@ -13,12 +13,16 @@ const FACEBOOK_AUTHORIZE_URL = "https://www.facebook.com/v21.0/dialog/oauth";
 const THREADS_AUTHORIZE_URL = "https://threads.net/oauth/authorize";
 const THREADS_TOKEN_URL = "https://graph.threads.net/oauth/access_token";
 const THREADS_LONG_LIVED_TOKEN_URL = "https://graph.threads.net/access_token";
+const THREADS_REFRESH_TOKEN_URL = "https://graph.threads.net/refresh_access_token";
 
 export const FACEBOOK_OAUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "pages_manage_posts",
   "pages_manage_metadata",
+  // Needed for the AI auto-reply pipeline's Messenger DM replies (see
+  // facebook/send-message.ts) -- not required for comment/mention replies.
+  "pages_messaging",
   "instagram_basic",
   "instagram_content_publish",
   "instagram_manage_comments",
@@ -194,6 +198,34 @@ export async function exchangeThreadsForLongLivedToken(
   url.searchParams.set("grant_type", "th_exchange_token");
   url.searchParams.set("client_secret", params.appSecret);
   url.searchParams.set("access_token", params.shortLivedToken);
+
+  const response = await fetchImpl(url.toString());
+  const json = await parseThreadsJson(response);
+
+  if (!response.ok || typeof json !== "object" || json === null || !("access_token" in json)) {
+    throw buildGraphApiError(response.status, json);
+  }
+
+  const parsed = json as { access_token: string; token_type: string; expires_in?: number };
+  return { accessToken: parsed.access_token, expiresIn: parsed.expires_in };
+}
+
+/**
+ * Refreshes a Threads long-lived token for another ~60 days via
+ * `th_refresh_token`, per Meta's Threads API docs -- unlike Facebook Page
+ * tokens (which this app treats as non-expiring, see routes/oauth.ts's
+ * `tokenExpiresAt: null` for facebook_page/instagram_business), Threads
+ * tokens have a tracked expiry and must be refreshed proactively before it
+ * lapses (see apps/trigger/tasks/refresh-meta-tokens.ts). Meta requires the
+ * token being refreshed to be at least 24 hours old.
+ */
+export async function refreshThreadsLongLivedToken(
+  params: { accessToken: string },
+  fetchImpl: ThreadsFetch = fetch,
+): Promise<OAuthTokenResult> {
+  const url = new URL(THREADS_REFRESH_TOKEN_URL);
+  url.searchParams.set("grant_type", "th_refresh_token");
+  url.searchParams.set("access_token", params.accessToken);
 
   const response = await fetchImpl(url.toString());
   const json = await parseThreadsJson(response);

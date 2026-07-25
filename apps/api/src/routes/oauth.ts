@@ -8,7 +8,10 @@ import {
   exchangeThreadsForLongLivedToken,
   fetchFacebookPageAccounts,
   FACEBOOK_OAUTH_SCOPES,
+  FACEBOOK_PAGE_WEBHOOK_FIELDS,
   GraphClient,
+  INSTAGRAM_WEBHOOK_FIELDS,
+  subscribeToWebhooks,
   THREADS_OAUTH_SCOPES,
 } from "@postauto/social";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -299,6 +302,19 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
             },
           });
 
+          // Best-effort: a failed subscribe call shouldn't fail the whole OAuth
+          // flow (the account is already linked and useful for publishing even
+          // if webhook delivery isn't set up yet) -- see subscribe-webhooks.ts.
+          try {
+            await subscribeToWebhooks(client, {
+              accountId: page.id,
+              accessToken: page.accessToken,
+              subscribedFields: FACEBOOK_PAGE_WEBHOOK_FIELDS,
+            });
+          } catch (error) {
+            request.log.error(error, `Failed to subscribe Page ${page.id} to webhooks`);
+          }
+
           if (page.instagramBusinessAccountId) {
             const igDisplayName = page.instagramBusinessAccountUsername
               ? `@${page.instagramBusinessAccountUsername}`
@@ -329,6 +345,16 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
                 displayName: igDisplayName,
               },
             });
+
+            try {
+              await subscribeToWebhooks(client, {
+                accountId: page.instagramBusinessAccountId,
+                accessToken: page.accessToken,
+                subscribedFields: INSTAGRAM_WEBHOOK_FIELDS,
+              });
+            } catch (error) {
+              request.log.error(error, `Failed to subscribe IG account ${page.instagramBusinessAccountId} to webhooks`);
+            }
           }
         }
 

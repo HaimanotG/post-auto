@@ -5,6 +5,7 @@ import {
   publishPhotoToFacebookPage,
   publishPhotoToInstagram,
   publishThreadsPost,
+  sendTelegramMessage,
   type PublishInstagramPhotoParams,
   type PublishInstagramPhotoResult,
   type PublishPhotoParams,
@@ -44,6 +45,8 @@ export interface PublishPostVariant {
     id: string;
     platformVariants: PublishPostSiblingVariant[];
     business: {
+      name: string;
+      telegramOwnerUserId: bigint;
       socialAccounts: PublishPostSocialAccount[];
     };
   };
@@ -92,6 +95,8 @@ export interface PublishPostDeps {
   /** Injectable for tests; defaults to decryptToken. */
   decryptToken: (payload: string, hexKey: string) => string;
   tokenEncryptionKey: string;
+  /** Injectable for tests; defaults to sendTelegramMessage. Notifies the seller when a variant permanently fails to publish. */
+  notifySeller: (payload: { chatId: bigint; text: string }) => Promise<unknown>;
 }
 
 /** Once every sibling variant of a post has reached a terminal state, rolls the parent post_platform_variants' outcome up into posts.status. */
@@ -143,6 +148,19 @@ export async function runPublishPost(deps: PublishPostDeps, payload: PublishPost
     const rolledUp = computeRolledUpPostStatus(siblings, variant!.id, status);
     if (rolledUp) {
       await deps.store.post.update({ where: { id: variant!.post.id }, data: { status: rolledUp } });
+    }
+
+    if (status === "failed") {
+      // Best-effort: a failed Telegram notification shouldn't mask the
+      // publish failure itself, which is already durably recorded above.
+      try {
+        await deps.notifySeller({
+          chatId: variant!.post.business.telegramOwnerUserId,
+          text: `Your post to ${variant!.platform} failed to publish: ${data.errorMessage ?? "unknown error"}`,
+        });
+      } catch (error) {
+        console.error(`Failed to notify seller of failed publish for variant ${variant!.id}`, error);
+      }
     }
   }
 
@@ -250,6 +268,7 @@ export const publishPostTask = task({
         publishThreadsPost,
         decryptToken,
         tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY,
+        notifySeller: ({ chatId, text }) => sendTelegramMessage({ botToken: env.TELEGRAM_BOT_TOKEN, chatId, text }),
       },
       payload,
     );

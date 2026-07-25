@@ -238,6 +238,8 @@ describe("GET /oauth/:platform/callback", () => {
           ],
         }),
       ),
+      http.post(`${GRAPH_BASE_URL}/v21.0/page-1/subscribed_apps`, () => HttpResponse.json({ success: true })),
+      http.post(`${GRAPH_BASE_URL}/v21.0/ig-1/subscribed_apps`, () => HttpResponse.json({ success: true })),
     );
 
     const socialAccountUpsert = vi.fn().mockResolvedValue(undefined);
@@ -407,6 +409,7 @@ describe("GET /oauth/:platform/callback (return-to-Telegram HTML screen)", () =>
       http.get(`${GRAPH_BASE_URL}/v21.0/me/accounts`, () =>
         HttpResponse.json({ data: [{ id: "page-1", name: "Page One", access_token: "page-1-access-token" }] }),
       ),
+      http.post(`${GRAPH_BASE_URL}/v21.0/page-1/subscribed_apps`, () => HttpResponse.json({ success: true })),
     );
 
     ({ app } = await buildFixtureApp({

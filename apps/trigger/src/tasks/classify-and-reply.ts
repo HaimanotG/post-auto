@@ -15,8 +15,10 @@ import {
   type IntentGateResult,
   type ReplyGenerationResult,
 } from "@postauto/ai";
+import { sendTelegramMessage } from "@postauto/social";
 import { prisma } from "@postauto/db";
 import { tasks, task } from "@trigger.dev/sdk";
+import { loadEnv } from "../env.js";
 
 export interface ClassifyAndReplyPayload {
   inboxMessageId: string;
@@ -30,7 +32,7 @@ export interface ClassifyAndReplyResult {
 interface StoredInboxMessage {
   id: string;
   body: string;
-  business: { name: string };
+  business: { name: string; telegramOwnerUserId: bigint };
   relatedPost: { captionMaster: string | null } | null;
 }
 
@@ -80,6 +82,12 @@ export interface ClassifyAndReplyDeps {
   confidenceThreshold?: number;
   /** Injectable for tests; defaults to tasks.trigger("publish-reply", ...). */
   enqueuePublishReply: (payload: { aiReplyDecisionId: string; inboxMessageId: string }) => Promise<unknown>;
+  /**
+   * Injectable for tests; defaults to sendTelegramMessage. Notifies the
+   * seller when a message is escalated to needs_attention, per PLAN.md's
+   * auto-reply pipeline step 2 ("...seller notified").
+   */
+  notifySeller: (payload: { chatId: bigint; text: string }) => Promise<unknown>;
 }
 
 /** Resolves the model name that will back `task`, without constructing a client or requiring an API key -- used only for the ai_reply_decisions.model_used audit column. */
@@ -91,10 +99,11 @@ function resolveTaskModelName(task: AiTask, modelOptions?: GetModelForTaskOption
  * Pure orchestration for classify-and-reply, matching PLAN.md's auto-reply
  * pipeline: (1) classify the inbox message's intent, (2) gate it against the
  * confidence + allowlist rule, (3) on auto_reply, generate an on-brand reply
- * and enqueue publish-reply; on escalate, no reply is generated. Either way
- * persists an ai_reply_decisions audit row and updates inbox_messages.status
- * (auto_replied / needs_attention) so the mini app's inbox reflects the
- * outcome.
+ * and enqueue publish-reply (apps/trigger/tasks/publish-reply.ts); on
+ * escalate, no reply is generated and the seller is notified via Telegram
+ * instead. Either way persists an ai_reply_decisions audit row and updates
+ * inbox_messages.status (auto_replied / needs_attention) so the mini app's
+ * inbox reflects the outcome.
  */
 export async function runClassifyAndReply(
   deps: ClassifyAndReplyDeps,
@@ -155,6 +164,18 @@ export async function runClassifyAndReply(
 
   if (gate.decision === "auto_reply") {
     await deps.enqueuePublishReply({ aiReplyDecisionId: decisionRow.id, inboxMessageId: message.id });
+  } else {
+    // Best-effort: a failed Telegram notification shouldn't fail the whole
+    // classification run -- the escalation is already durably recorded via
+    // ai_reply_decisions + inbox_messages.status above.
+    try {
+      await deps.notifySeller({
+        chatId: message.business.telegramOwnerUserId,
+        text: `A customer message needs your attention: "${message.body}"`,
+      });
+    } catch (error) {
+      console.error(`Failed to notify seller of escalated inbox message ${message.id}`, error);
+    }
   }
 
   return { decision: gate.decision, aiReplyDecisionId: decisionRow.id };
@@ -165,7 +186,10 @@ const prismaStore: ClassifyAndReplyStore = {
     async findUnique(args) {
       const message = await prisma.inboxMessage.findUnique({
         where: args.where,
-        include: { business: { select: { name: true } }, relatedPost: { select: { captionMaster: true } } },
+        include: {
+          business: { select: { name: true, telegramOwnerUserId: true } },
+          relatedPost: { select: { captionMaster: true } },
+        },
       });
       if (!message) {
         return null;
@@ -173,7 +197,7 @@ const prismaStore: ClassifyAndReplyStore = {
       return {
         id: message.id,
         body: message.body,
-        business: { name: message.business.name },
+        business: { name: message.business.name, telegramOwnerUserId: message.business.telegramOwnerUserId },
         relatedPost: message.relatedPost ? { captionMaster: message.relatedPost.captionMaster } : null,
       };
     },
@@ -184,16 +208,10 @@ const prismaStore: ClassifyAndReplyStore = {
   },
 };
 
-/**
- * `publish-reply` (the task this enqueues on auto_reply) isn't implemented
- * yet -- it's not part of prd.json's current task queue -- so it's triggered
- * by task-id string, matching the same not-yet-existing-task precedent
- * apps/api's webhooks-meta.ts (m3-02) established for "process-meta-webhook"
- * before m3-03 landed.
- */
 export const classifyAndReplyTask = task({
   id: "classify-and-reply",
   run: async (payload: ClassifyAndReplyPayload) => {
+    const env = loadEnv();
     return runClassifyAndReply(
       {
         store: prismaStore,
@@ -201,6 +219,7 @@ export const classifyAndReplyTask = task({
         gateIntentDecision: defaultGateIntentDecision,
         generateReply: defaultGenerateReply,
         enqueuePublishReply: (data) => tasks.trigger("publish-reply", data),
+        notifySeller: ({ chatId, text }) => sendTelegramMessage({ botToken: env.TELEGRAM_BOT_TOKEN, chatId, text }),
       },
       payload,
     );

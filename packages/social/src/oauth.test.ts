@@ -9,6 +9,7 @@ import {
   exchangeFacebookCodeForToken,
   exchangeThreadsCodeForToken,
   exchangeThreadsForLongLivedToken,
+  refreshThreadsLongLivedToken,
   fetchFacebookPageAccounts,
   FACEBOOK_OAUTH_SCOPES,
   THREADS_OAUTH_SCOPES,
@@ -217,5 +218,40 @@ describe("exchangeThreadsForLongLivedToken", () => {
     expect(parsed.searchParams.get("grant_type")).toBe("th_exchange_token");
     expect(parsed.searchParams.get("client_secret")).toBe("app-secret");
     expect(parsed.searchParams.get("access_token")).toBe("threads-short-token");
+  });
+});
+
+describe("refreshThreadsLongLivedToken", () => {
+  it("refreshes a long-lived token via th_refresh_token", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ access_token: "threads-refreshed-token", token_type: "bearer", expires_in: 5_184_000 }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    const result = await refreshThreadsLongLivedToken({ accessToken: "threads-current-token" }, fetchImpl);
+
+    expect(result).toEqual({ accessToken: "threads-refreshed-token", expiresIn: 5_184_000 });
+    const [url] = fetchImpl.mock.calls[0] as [string];
+    const parsed = new URL(url);
+    expect(parsed.origin + parsed.pathname).toBe("https://graph.threads.net/refresh_access_token");
+    expect(parsed.searchParams.get("grant_type")).toBe("th_refresh_token");
+    expect(parsed.searchParams.get("access_token")).toBe("threads-current-token");
+  });
+
+  it("throws a GraphApiError when the token can no longer be refreshed", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: "Invalid OAuth access token", code: 190 } }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    const error = await refreshThreadsLongLivedToken({ accessToken: "expired-token" }, fetchImpl).catch(
+      (e: unknown) => e,
+    );
+
+    expect(error).toBeInstanceOf(GraphApiError);
   });
 });

@@ -16,6 +16,8 @@ function buildVariant(overrides: Partial<PublishPostVariant> = {}): PublishPostV
       id: "post_1",
       platformVariants: [{ id: "variant_1", variantStatus: "publishing" }],
       business: {
+        name: "Boutique Addis",
+        telegramOwnerUserId: 555666777n,
         socialAccounts: [
           {
             id: "account_1",
@@ -38,6 +40,7 @@ function buildDeps(
     publishPhoto: PublishPostDeps["publishPhoto"];
     publishInstagramPhoto: PublishPostDeps["publishInstagramPhoto"];
     publishThreadsPost: PublishPostDeps["publishThreadsPost"];
+    notifySeller: ReturnType<typeof vi.fn>;
   }> = {},
 ): {
   deps: PublishPostDeps;
@@ -45,6 +48,7 @@ function buildDeps(
   update: ReturnType<typeof vi.fn>;
   postUpdate: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
+  notifySeller: ReturnType<typeof vi.fn>;
 } {
   const variant = "variant" in overrides ? overrides.variant : buildVariant();
   const findUnique = vi.fn().mockResolvedValue(variant);
@@ -54,6 +58,7 @@ function buildDeps(
   // the concurrent-sibling race override this to return statuses that have
   // since changed underneath the in-memory `variant` snapshot.
   const findMany = overrides.findMany ?? vi.fn().mockResolvedValue(variant ? variant.post.platformVariants : []);
+  const notifySeller = overrides.notifySeller ?? vi.fn().mockResolvedValue(undefined);
 
   const deps: PublishPostDeps = {
     store: { postPlatformVariant: { findUnique, update, findMany }, post: { update: postUpdate } },
@@ -65,14 +70,15 @@ function buildDeps(
     publishThreadsPost: overrides.publishThreadsPost ?? vi.fn().mockResolvedValue({ mediaId: "threads-media-1" }),
     decryptToken: vi.fn((payload: string) => `decrypted:${payload}`),
     tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
+    notifySeller,
   };
 
-  return { deps, findUnique, update, postUpdate, findMany };
+  return { deps, findUnique, update, postUpdate, findMany, notifySeller };
 }
 
 describe("runPublishPost", () => {
   it("publishes to Facebook: publishing -> published, using the decrypted page token, and rolls the post up to published", async () => {
-    const { deps, update, postUpdate } = buildDeps();
+    const { deps, update, postUpdate, notifySeller } = buildDeps();
 
     await runPublishPost(deps, { postPlatformVariantId: "variant_1" });
 
@@ -94,6 +100,7 @@ describe("runPublishPost", () => {
     });
     expect(update).toHaveBeenCalledTimes(2);
     expect(postUpdate).toHaveBeenCalledWith({ where: { id: "post_1" }, data: { status: "published" } });
+    expect(notifySeller).not.toHaveBeenCalled();
   });
 
   it("publishes to Instagram using the two-step container flow", async () => {
@@ -105,6 +112,8 @@ describe("runPublishPost", () => {
           id: "post_1",
           platformVariants: [{ id: "variant_1", variantStatus: "publishing" }],
           business: {
+            name: "Boutique Addis",
+            telegramOwnerUserId: 555666777n,
             socialAccounts: [
               {
                 id: "account_ig",
@@ -144,6 +153,8 @@ describe("runPublishPost", () => {
           id: "post_1",
           platformVariants: [{ id: "variant_1", variantStatus: "publishing" }],
           business: {
+            name: "Boutique Addis",
+            telegramOwnerUserId: 555666777n,
             socialAccounts: [
               {
                 id: "account_threads",
@@ -182,6 +193,8 @@ describe("runPublishPost", () => {
             { id: "variant_2", variantStatus: "pending" },
           ],
           business: {
+            name: "Boutique Addis",
+            telegramOwnerUserId: 555666777n,
             socialAccounts: [
               {
                 id: "account_1",
@@ -214,6 +227,8 @@ describe("runPublishPost", () => {
             { id: "variant_2", variantStatus: "pending" },
           ],
           business: {
+            name: "Boutique Addis",
+            telegramOwnerUserId: 555666777n,
             socialAccounts: [
               {
                 id: "account_1",
@@ -248,6 +263,8 @@ describe("runPublishPost", () => {
             { id: "variant_2", variantStatus: "failed" },
           ],
           business: {
+            name: "Boutique Addis",
+            telegramOwnerUserId: 555666777n,
             socialAccounts: [
               {
                 id: "account_1",
@@ -302,12 +319,12 @@ describe("runPublishPost", () => {
   });
 
   it("marks the variant failed when its targeted account is no longer active or connected", async () => {
-    const { deps, update, postUpdate } = buildDeps({
+    const { deps, update, postUpdate, notifySeller } = buildDeps({
       variant: buildVariant({
         post: {
           id: "post_1",
           platformVariants: [{ id: "variant_1", variantStatus: "publishing" }],
-          business: { socialAccounts: [] },
+          business: { name: "Boutique Addis", telegramOwnerUserId: 555666777n, socialAccounts: [] },
         },
       }),
     });
@@ -324,6 +341,10 @@ describe("runPublishPost", () => {
     });
     expect(deps.publishPhoto).not.toHaveBeenCalled();
     expect(postUpdate).toHaveBeenCalledWith({ where: { id: "post_1" }, data: { status: "failed" } });
+    expect(notifySeller).toHaveBeenCalledWith({
+      chatId: 555666777n,
+      text: expect.stringContaining("facebook_page"),
+    });
   });
 
   it("marks the variant failed when a media-requiring platform has no media to publish", async () => {
@@ -351,14 +372,14 @@ describe("runPublishPost", () => {
     });
   });
 
-  it("marks the variant failed (no retry) on a non-retryable Graph API error", async () => {
+  it("marks the variant failed (no retry) on a non-retryable Graph API error, and notifies the seller", async () => {
     const authError = new GraphApiError({
       message: "Error validating access token",
       status: 401,
       category: "auth_error",
       code: 190,
     });
-    const { deps, update } = buildDeps({ publishPhoto: vi.fn().mockRejectedValue(authError) });
+    const { deps, update, notifySeller } = buildDeps({ publishPhoto: vi.fn().mockRejectedValue(authError) });
 
     await expect(runPublishPost(deps, { postPlatformVariantId: "variant_1" })).resolves.toBeUndefined();
 
@@ -368,16 +389,35 @@ describe("runPublishPost", () => {
       data: { variantStatus: "failed", errorMessage: "Error validating access token" },
     });
     expect(update).toHaveBeenCalledTimes(2);
+    expect(notifySeller).toHaveBeenCalledWith({
+      chatId: 555666777n,
+      text: expect.stringContaining("Error validating access token"),
+    });
   });
 
-  it("increments retryCount and rethrows on a retryable Graph API error, without marking failed", async () => {
+  it("does not fail the run when notifying the seller of a publish failure fails", async () => {
+    const authError = new GraphApiError({
+      message: "Error validating access token",
+      status: 401,
+      category: "auth_error",
+      code: 190,
+    });
+    const notifySeller = vi.fn().mockRejectedValue(new Error("telegram unreachable"));
+    const { deps } = buildDeps({ publishPhoto: vi.fn().mockRejectedValue(authError), notifySeller });
+
+    await expect(runPublishPost(deps, { postPlatformVariantId: "variant_1" })).resolves.toBeUndefined();
+  });
+
+  it("increments retryCount and rethrows on a retryable Graph API error, without marking failed or notifying the seller", async () => {
     const rateLimitError = new GraphApiError({
       message: "Application request limit reached",
       status: 429,
       category: "rate_limited",
       code: 4,
     });
-    const { deps, update, postUpdate } = buildDeps({ publishPhoto: vi.fn().mockRejectedValue(rateLimitError) });
+    const { deps, update, postUpdate, notifySeller } = buildDeps({
+      publishPhoto: vi.fn().mockRejectedValue(rateLimitError),
+    });
 
     await expect(runPublishPost(deps, { postPlatformVariantId: "variant_1" })).rejects.toBe(rateLimitError);
 
@@ -385,6 +425,7 @@ describe("runPublishPost", () => {
     expect(update).toHaveBeenNthCalledWith(2, { where: { id: "variant_1" }, data: { retryCount: 1 } });
     expect(update).toHaveBeenCalledTimes(2);
     expect(postUpdate).not.toHaveBeenCalled();
+    expect(notifySeller).not.toHaveBeenCalled();
   });
 
   it("treats an unclassified (non-GraphApiError) failure as retryable", async () => {
