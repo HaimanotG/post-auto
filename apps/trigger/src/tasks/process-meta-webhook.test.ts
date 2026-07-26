@@ -211,6 +211,10 @@ describe("normalizeWebhookEventPayload", () => {
   });
 
   it("normalizes a Threads reply", () => {
+    // Shape matches Meta's documented sample payload
+    // (developers.facebook.com/docs/threads/webhooks): `username` sits
+    // directly on the value, not nested under a `from` object, and there's
+    // no numeric sender id field at all.
     const payload = {
       object: "threads",
       entry: [
@@ -222,7 +226,7 @@ describe("normalizeWebhookEventPayload", () => {
               value: {
                 id: "threads_reply_1",
                 text: "Restocking soon?",
-                from: { id: "threads_user_2", username: "addis_fan" },
+                username: "addis_fan",
                 replied_to: { id: "threads_post_1" },
               },
             },
@@ -237,7 +241,7 @@ describe("normalizeWebhookEventPayload", () => {
         externalAccountId: "threads_user_1",
         externalMessageId: "threads_reply_1",
         externalRelatedObjectId: "threads_post_1",
-        senderExternalId: "threads_user_2",
+        senderExternalId: "unknown",
         senderName: null,
         senderUsername: "addis_fan",
         body: "Restocking soon?",

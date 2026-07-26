@@ -10,13 +10,20 @@ function setTelegramWebApp(webApp: Partial<TelegramWebApp> | undefined) {
 function mockAuthenticatedFetch(handlers: {
   onCreatePost?: (request: Request) => Response | Promise<Response>;
   onPublish?: (request: Request) => Response | Promise<Response>;
+  // Takes the raw (url, init) rather than a Request -- jsdom's FormData
+  // instances aren't recognized by Node's undici Request/body internals, so
+  // `new Request(...).formData()` hangs forever in this test environment.
+  // Inspecting init.body directly (still a real FormData) sidesteps that.
+  onUpload?: (url: string, init: RequestInit | undefined) => Response | Promise<Response>;
   oauthStatusResponse?: () => Response | Promise<Response>;
 }) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const request = new Request(input, init);
-      if (request.url.endsWith("/auth/telegram")) {
+      const url = typeof input === "string" ? input : input.toString();
+      const method = init?.method ?? "GET";
+
+      if (url.endsWith("/auth/telegram")) {
         return new Response(
           JSON.stringify({
             token: "jwt-token",
@@ -25,11 +32,17 @@ function mockAuthenticatedFetch(handlers: {
           { status: 200 },
         );
       }
-      if (request.url.endsWith("/oauth/status")) {
+      if (url.endsWith("/oauth/status")) {
         return handlers.oauthStatusResponse
           ? handlers.oauthStatusResponse()
           : new Response(JSON.stringify({ connected: [] }), { status: 200 });
       }
+      if (url.endsWith("/uploads") && method === "POST") {
+        if (!handlers.onUpload) throw new Error("Unexpected POST /uploads");
+        return handlers.onUpload(url, init);
+      }
+
+      const request = new Request(input, init);
       if (request.url.endsWith("/posts") && request.method === "POST") {
         if (!handlers.onCreatePost) throw new Error("Unexpected POST /posts");
         return handlers.onCreatePost(request);
@@ -41,6 +54,12 @@ function mockAuthenticatedFetch(handlers: {
       throw new Error(`Unexpected fetch to ${request.url}`);
     }),
   );
+}
+
+function selectPhoto(inputId: string, file: File) {
+  const input = document.getElementById(inputId) as HTMLInputElement;
+  Object.defineProperty(input, "files", { value: [file], configurable: true });
+  fireEvent.change(input);
 }
 
 async function renderComposer() {
@@ -238,6 +257,57 @@ describe("PostComposer", () => {
     });
     expect(onCreatePost).toHaveBeenCalledTimes(1);
     expect(onPublish).toHaveBeenCalledTimes(1);
+  });
+
+  it("uploads a phone-picked photo and fills the image URL with the returned url", async () => {
+    const onUpload = vi.fn((_url: string, init: RequestInit | undefined) => {
+      expect(init?.body).toBeInstanceOf(FormData);
+      expect((init?.headers as Record<string, string>).authorization).toBe("Bearer jwt-token");
+      return new Response(JSON.stringify({ url: "https://cdn.test/uploads/biz_1/tomato.jpg" }), { status: 201 });
+    });
+    const onCreatePost = vi.fn(async (request: Request) => {
+      const body = await request.json();
+      expect(body.assets).toEqual([{ rawUrl: "https://cdn.test/uploads/biz_1/tomato.jpg" }]);
+      return new Response(
+        JSON.stringify({ id: "post_1", status: "draft", captionMaster: null, sourceAssets: [] }),
+        { status: 201 },
+      );
+    });
+    mockAuthenticatedFetch({ onUpload, onCreatePost });
+
+    await renderComposer();
+
+    const file = new File(["fake-image-bytes"], "tomato.jpg", { type: "image/jpeg" });
+    selectPhoto("post-composer-asset-0-file", file);
+
+    await waitFor(() => {
+      expect(onUpload).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Image URL")).toHaveValue("https://cdn.test/uploads/biz_1/tomato.jpg");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("Draft saved.");
+    });
+    expect(onCreatePost).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows an inline error and leaves the url field usable when a photo upload fails", async () => {
+    const onUpload = vi.fn(() => new Response(null, { status: 500 }));
+    mockAuthenticatedFetch({ onUpload });
+
+    await renderComposer();
+
+    const file = new File(["fake-image-bytes"], "tomato.jpg", { type: "image/jpeg" });
+    selectPhoto("post-composer-asset-0-file", file);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Upload failed");
+    });
+    expect(screen.getByLabelText("Image URL")).not.toBeDisabled();
   });
 
   it("requires at least one selected account before publishing, without calling POST /posts", async () => {

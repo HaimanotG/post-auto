@@ -2,10 +2,16 @@ import { decryptToken } from "@postauto/shared";
 import {
   GraphApiError,
   GraphClient,
+  publishCarouselToFacebookPage,
+  publishCarouselToInstagram,
   publishPhotoToFacebookPage,
   publishPhotoToInstagram,
   publishThreadsPost,
   sendTelegramMessage,
+  type PublishCarouselParams,
+  type PublishCarouselResult,
+  type PublishInstagramCarouselParams,
+  type PublishInstagramCarouselResult,
   type PublishInstagramPhotoParams,
   type PublishInstagramPhotoResult,
   type PublishPhotoParams,
@@ -86,10 +92,17 @@ export interface PublishPostDeps {
   graphClient: GraphClient;
   /** Threads lives on a different host (`graph.threads.net`) than the rest of the Graph API -- see packages/social/src/threads/publish-post.ts. */
   threadsGraphClient: GraphClient;
-  /** Injectable for tests; defaults to publishPhotoToFacebookPage. */
+  /** Injectable for tests; defaults to publishPhotoToFacebookPage. Used when the variant has exactly one media URL. */
   publishPhoto: (client: GraphClient, params: PublishPhotoParams) => Promise<PublishPhotoResult>;
-  /** Injectable for tests; defaults to publishPhotoToInstagram. */
+  /** Injectable for tests; defaults to publishCarouselToFacebookPage. Used when the variant has more than one media URL. */
+  publishCarousel: (client: GraphClient, params: PublishCarouselParams) => Promise<PublishCarouselResult>;
+  /** Injectable for tests; defaults to publishPhotoToInstagram. Used when the variant has exactly one media URL. */
   publishInstagramPhoto: (client: GraphClient, params: PublishInstagramPhotoParams) => Promise<PublishInstagramPhotoResult>;
+  /** Injectable for tests; defaults to publishCarouselToInstagram. Used when the variant has more than one media URL. */
+  publishInstagramCarousel: (
+    client: GraphClient,
+    params: PublishInstagramCarouselParams,
+  ) => Promise<PublishInstagramCarouselResult>;
   /** Injectable for tests; defaults to publishThreadsPost. */
   publishThreadsPost: (client: GraphClient, params: PublishThreadsPostParams) => Promise<PublishThreadsPostResult>;
   /** Injectable for tests; defaults to decryptToken. */
@@ -192,23 +205,43 @@ export async function runPublishPost(deps: PublishPostDeps, payload: PublishPost
 
     switch (variant.platform) {
       case "facebook_page": {
-        const result = await deps.publishPhoto(deps.graphClient, {
-          pageId: socialAccount.externalAccountId,
-          pageAccessToken: accessToken,
-          imageUrl: imageUrl!,
-          caption: variant.captionText ?? undefined,
-        });
-        externalPostId = result.postId ?? result.photoId;
+        if (variant.mediaUrls.length > 1) {
+          const result = await deps.publishCarousel(deps.graphClient, {
+            pageId: socialAccount.externalAccountId,
+            pageAccessToken: accessToken,
+            imageUrls: variant.mediaUrls,
+            caption: variant.captionText ?? undefined,
+          });
+          externalPostId = result.postId;
+        } else {
+          const result = await deps.publishPhoto(deps.graphClient, {
+            pageId: socialAccount.externalAccountId,
+            pageAccessToken: accessToken,
+            imageUrl: imageUrl!,
+            caption: variant.captionText ?? undefined,
+          });
+          externalPostId = result.postId ?? result.photoId;
+        }
         break;
       }
       case "instagram_business": {
-        const result = await deps.publishInstagramPhoto(deps.graphClient, {
-          igUserId: socialAccount.externalAccountId,
-          pageAccessToken: accessToken,
-          imageUrl: imageUrl!,
-          caption: variant.captionText ?? undefined,
-        });
-        externalPostId = result.mediaId;
+        if (variant.mediaUrls.length > 1) {
+          const result = await deps.publishInstagramCarousel(deps.graphClient, {
+            igUserId: socialAccount.externalAccountId,
+            pageAccessToken: accessToken,
+            imageUrls: variant.mediaUrls,
+            caption: variant.captionText ?? undefined,
+          });
+          externalPostId = result.mediaId;
+        } else {
+          const result = await deps.publishInstagramPhoto(deps.graphClient, {
+            igUserId: socialAccount.externalAccountId,
+            pageAccessToken: accessToken,
+            imageUrl: imageUrl!,
+            caption: variant.captionText ?? undefined,
+          });
+          externalPostId = result.mediaId;
+        }
         break;
       }
       case "threads": {
@@ -264,7 +297,9 @@ export const publishPostTask = task({
         graphClient: new GraphClient(),
         threadsGraphClient: new GraphClient({ baseUrl: "https://graph.threads.net" }),
         publishPhoto: publishPhotoToFacebookPage,
+        publishCarousel: publishCarouselToFacebookPage,
         publishInstagramPhoto: publishPhotoToInstagram,
+        publishInstagramCarousel: publishCarouselToInstagram,
         publishThreadsPost,
         decryptToken,
         tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY,

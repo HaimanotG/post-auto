@@ -80,6 +80,17 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText("Loading analytics…")).toBeInTheDocument();
 
+    // The loading text above comes from Dashboard's initial state, which
+    // commits before its effect (the fetch that assigns resolveAnalytics)
+    // has necessarily run — wait for that fetch directly instead of racing
+    // it, or resolveAnalytics can still be unassigned here under CI timing.
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        "https://api.test/analytics",
+        expect.objectContaining({ headers: { authorization: "Bearer jwt-token" } }),
+      );
+    });
+
     resolveAnalytics(new Response(JSON.stringify(FIXTURE_ANALYTICS), { status: 200 }));
 
     await waitFor(() => {

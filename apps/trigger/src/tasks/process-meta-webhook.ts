@@ -136,25 +136,31 @@ function normalizeInstagramChange(entryAccountId: string | null, change: MetaWeb
 
 /**
  * Threads' `replies` change is the closest analog to a Page/IG comment: a
- * reply to a Threads post. Mirrors the Graph API `from` object convention
- * used by comments elsewhere; Threads webhooks are newer/less stable than
- * Page/IG's, so field names here should be re-verified against Meta's
- * Threads webhooks reference before relying on this against live traffic.
+ * reply to a Threads post. Unlike facebook_page/instagram_business, this
+ * does NOT nest sender info under a `from` object -- confirmed against
+ * Meta's Threads webhooks reference (developers.facebook.com/docs/threads/webhooks)
+ * sample payload, `username` sits directly on the reply value, and there's
+ * no numeric sender/user id field in the documented payload at all (only
+ * `root_post.owner_id`, which is the *account owner*, not the replier).
+ * senderExternalId is therefore always "unknown" here -- harmless for
+ * publish-reply.ts's Threads branch, which replies via `replyToId`
+ * (= externalMessageId, this reply's own media id) and never reads
+ * senderExternalId; it only affects what the inbox UI shows as the sender's
+ * id (senderUsername is still populated correctly).
  */
 function normalizeThreadsChange(entryAccountId: string | null, change: MetaWebhookChange): NormalizedInboxMessage | null {
   const value = change.value ?? {};
 
   if (change.field === "replies") {
-    const from = (value.from ?? {}) as MetaWebhookFrom;
     const repliedTo = (value.replied_to ?? {}) as { id?: string };
     return {
       type: "comment",
       externalAccountId: entryAccountId,
       externalMessageId: str(value.id) ?? "",
       externalRelatedObjectId: str(repliedTo.id),
-      senderExternalId: str(from.id) ?? "unknown",
+      senderExternalId: "unknown",
       senderName: null,
-      senderUsername: str(from.username),
+      senderUsername: str(value.username),
       body: str(value.text) ?? "",
     };
   }

@@ -9,6 +9,20 @@ import type { GraphClient } from "./graph-client.js";
  * *app*, not each individual Page/IG account. Same call shape for both
  * facebook_page (keyed by page id) and instagram_business (keyed by IG user
  * id) -- both use the Page access token.
+ *
+ * Deliberately has no Threads counterpart: the Threads Graph API
+ * (graph.threads.net) has no `/{threads-user-id}/subscribed_apps`-equivalent
+ * endpoint at all (confirmed against Meta's Threads webhooks reference,
+ * developers.facebook.com/docs/threads/webhooks, and the Graph API explorer
+ * -- `subscribed_apps` only exists on Pages/ad accounts/WABAs). Threads
+ * webhook delivery is controlled entirely by (1) a one-time, app-level
+ * "Get real-time notifications with Threads Webhooks" sub-use case
+ * subscription configured once in the App Dashboard (not per connected
+ * account, and not something this codebase can or needs to automate), and
+ * (2) the connecting user granting the field's required permission scope
+ * during OAuth -- e.g. the `replies` topic this app relies on for Threads
+ * auto-reply needs `threads_basic` + `threads_read_replies`, both in
+ * THREADS_OAUTH_SCOPES (see oauth.ts).
  */
 export interface SubscribeToWebhooksParams {
   /** The Page id (facebook_page) or IG user id (instagram_business) to subscribe. */

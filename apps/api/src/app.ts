@@ -1,5 +1,7 @@
 import fastifyCors from "@fastify/cors";
 import fastifyJwt from "@fastify/jwt";
+import fastifyMultipart from "@fastify/multipart";
+import { LocalFilesystemStorage, type ObjectStorage } from "@postauto/storage";
 import rawBody from "fastify-raw-body";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { TelegramUserStore } from "./middleware/telegram-init-data.js";
@@ -9,7 +11,10 @@ import { registerInboxRoutes, type InboxStore } from "./routes/inbox.js";
 import { registerMarketplaceRoutes, type MarketplaceStore } from "./routes/marketplace.js";
 import { registerOAuthRoutes, type OAuthRoutesOptions, type OAuthStore } from "./routes/oauth.js";
 import { registerPostsRoutes, type PostsRoutesOptions, type PostStore } from "./routes/posts.js";
+import { registerUploadsRoutes } from "./routes/uploads.js";
 import { registerWebhooksMetaRoutes, type WebhookEventStore, type WebhooksMetaRoutesOptions } from "./routes/webhooks-meta.js";
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 export interface BuildAppOptions {
   prisma: TelegramUserStore & OAuthStore & PostStore & WebhookEventStore & AnalyticsStore & InboxStore & MarketplaceStore;
@@ -17,6 +22,9 @@ export interface BuildAppOptions {
   jwtSecret: string;
   metaAppId: string;
   metaAppSecret: string;
+  /** Threads API's own App ID/Secret, distinct from metaAppId/metaAppSecret -- see routes/oauth.ts's OAuthRoutesOptions.threadsAppId doc comment. Optional here (rather than required like metaAppId) so callers/tests that never exercise the Threads OAuth routes don't need to supply it; registerOAuthRoutes throws a clear error if a Threads OAuth request actually needs it and it's missing. */
+  threadsAppId?: string;
+  threadsAppSecret?: string;
   metaWebhookVerifyToken: string;
   tokenEncryptionKey: string;
   baseUrl: string;
@@ -38,6 +46,13 @@ export interface BuildAppOptions {
   enqueuePublishPost?: PostsRoutesOptions["enqueuePublishPost"];
   /** Injectable for tests; forwarded to registerPostsRoutes. */
   enqueueRenderSlides?: PostsRoutesOptions["enqueueRenderSlides"];
+  /**
+   * Backs POST /uploads (phone photo upload -- see routes/uploads.ts).
+   * Defaults to local disk under /tmp, which is fine for local dev but not
+   * production (see lib/object-storage.ts's buildObjectStorage, which
+   * server.ts uses to build a real S3-compatible one from env).
+   */
+  storage?: ObjectStorage;
 }
 
 /**
@@ -69,6 +84,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   await app.register(fastifyJwt, { secret: options.jwtSecret });
 
+  await app.register(fastifyMultipart, {
+    limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
+  });
+
   app.get("/health", async () => {
     return { status: "ok" };
   });
@@ -82,6 +101,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     prisma: options.prisma,
     metaAppId: options.metaAppId,
     metaAppSecret: options.metaAppSecret,
+    threadsAppId: options.threadsAppId,
+    threadsAppSecret: options.threadsAppSecret,
     tokenEncryptionKey: options.tokenEncryptionKey,
     baseUrl: options.baseUrl,
     telegramBotUsername: options.telegramBotUsername,
@@ -94,6 +115,11 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     prisma: options.prisma,
     enqueuePublishPost: options.enqueuePublishPost,
     enqueueRenderSlides: options.enqueueRenderSlides,
+  });
+
+  registerUploadsRoutes(app, {
+    prisma: options.prisma,
+    storage: options.storage ?? new LocalFilesystemStorage({ baseDir: "/tmp/postauto-uploads" }),
   });
 
   registerAnalyticsRoutes(app, { prisma: options.prisma });

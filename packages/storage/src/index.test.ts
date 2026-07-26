@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LocalFilesystemStorage, S3ObjectStorage } from "./storage.js";
+import { LocalFilesystemStorage, S3ObjectStorage } from "./index.js";
 
 describe("LocalFilesystemStorage", () => {
   let baseDir: string;

@@ -38,7 +38,9 @@ function buildDeps(
     variant: PublishPostVariant | null;
     findMany: ReturnType<typeof vi.fn>;
     publishPhoto: PublishPostDeps["publishPhoto"];
+    publishCarousel: PublishPostDeps["publishCarousel"];
     publishInstagramPhoto: PublishPostDeps["publishInstagramPhoto"];
+    publishInstagramCarousel: PublishPostDeps["publishInstagramCarousel"];
     publishThreadsPost: PublishPostDeps["publishThreadsPost"];
     notifySeller: ReturnType<typeof vi.fn>;
   }> = {},
@@ -66,7 +68,10 @@ function buildDeps(
     threadsGraphClient: new GraphClient({ baseUrl: "https://graph.threads.test" }),
     publishPhoto:
       overrides.publishPhoto ?? vi.fn().mockResolvedValue({ photoId: "photo-1", postId: "page-123_post-1" }),
+    publishCarousel: overrides.publishCarousel ?? vi.fn().mockResolvedValue({ postId: "page-123_post-1" }),
     publishInstagramPhoto: overrides.publishInstagramPhoto ?? vi.fn().mockResolvedValue({ mediaId: "ig-media-1" }),
+    publishInstagramCarousel:
+      overrides.publishInstagramCarousel ?? vi.fn().mockResolvedValue({ mediaId: "ig-carousel-media-1" }),
     publishThreadsPost: overrides.publishThreadsPost ?? vi.fn().mockResolvedValue({ mediaId: "threads-media-1" }),
     decryptToken: vi.fn((payload: string) => `decrypted:${payload}`),
     tokenEncryptionKey: TOKEN_ENCRYPTION_KEY,
@@ -139,6 +144,67 @@ describe("runPublishPost", () => {
     expect(update).toHaveBeenNthCalledWith(2, {
       where: { id: "variant_1" },
       data: { variantStatus: "published", externalPostId: "ig-media-1" },
+    });
+  });
+
+  it("publishes a Facebook carousel (not a single photo) when the variant has more than one media URL", async () => {
+    const { deps, update } = buildDeps({
+      variant: buildVariant({ mediaUrls: ["https://cdn.test/1.jpg", "https://cdn.test/2.jpg", "https://cdn.test/3.jpg"] }),
+    });
+
+    await runPublishPost(deps, { postPlatformVariantId: "variant_1" });
+
+    expect(deps.publishCarousel).toHaveBeenCalledWith(deps.graphClient, {
+      pageId: "page-123",
+      pageAccessToken: "decrypted:encrypted-token",
+      imageUrls: ["https://cdn.test/1.jpg", "https://cdn.test/2.jpg", "https://cdn.test/3.jpg"],
+      caption: "New arrivals!",
+    });
+    expect(deps.publishPhoto).not.toHaveBeenCalled();
+    expect(update).toHaveBeenNthCalledWith(2, {
+      where: { id: "variant_1" },
+      data: { variantStatus: "published", externalPostId: "page-123_post-1" },
+    });
+  });
+
+  it("publishes an Instagram carousel (not a single photo) when the variant has more than one media URL", async () => {
+    const { deps, update } = buildDeps({
+      variant: buildVariant({
+        platform: "instagram_business",
+        socialAccountId: "account_ig",
+        mediaUrls: ["https://cdn.test/1.jpg", "https://cdn.test/2.jpg"],
+        post: {
+          id: "post_1",
+          platformVariants: [{ id: "variant_1", variantStatus: "publishing" }],
+          business: {
+            name: "Boutique Addis",
+            telegramOwnerUserId: 555666777n,
+            socialAccounts: [
+              {
+                id: "account_ig",
+                platform: "instagram_business",
+                externalAccountId: "ig-user-1",
+                accessTokenEncrypted: "encrypted-page-token",
+                status: "active",
+              },
+            ],
+          },
+        },
+      }),
+    });
+
+    await runPublishPost(deps, { postPlatformVariantId: "variant_1" });
+
+    expect(deps.publishInstagramCarousel).toHaveBeenCalledWith(deps.graphClient, {
+      igUserId: "ig-user-1",
+      pageAccessToken: "decrypted:encrypted-page-token",
+      imageUrls: ["https://cdn.test/1.jpg", "https://cdn.test/2.jpg"],
+      caption: "New arrivals!",
+    });
+    expect(deps.publishInstagramPhoto).not.toHaveBeenCalled();
+    expect(update).toHaveBeenNthCalledWith(2, {
+      where: { id: "variant_1" },
+      data: { variantStatus: "published", externalPostId: "ig-carousel-media-1" },
     });
   });
 

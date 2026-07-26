@@ -26,6 +26,8 @@ async function buildFixtureApp(prismaOverrides: Parameters<typeof createFixtureP
     jwtSecret: FIXTURE_JWT_SECRET,
     metaAppId: "meta-app-id",
     metaAppSecret: "meta-app-secret",
+    threadsAppId: "threads-app-id",
+    threadsAppSecret: "threads-app-secret",
     metaWebhookVerifyToken: "meta-webhook-verify-token",
     tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
     baseUrl: FIXTURE_BASE_URL,
@@ -128,6 +130,50 @@ describe("GET /oauth/:platform/start", () => {
 
     expect(response.statusCode).toBe(200);
     expect(businessCreate).not.toHaveBeenCalled();
+  });
+
+  it("uses the Threads-specific app ID (not the Meta App ID) for the Threads authorization URL", async () => {
+    ({ app } = await buildFixtureApp({
+      business: { findFirst: vi.fn().mockResolvedValue({ id: "biz_1" }) },
+    }));
+    const token = await signJwt(app, { sub: "user_1", telegramUserId: "42" });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/oauth/threads/start",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    const url = new URL(body.authorizationUrl);
+    expect(url.origin + url.pathname).toBe("https://threads.net/oauth/authorize");
+    expect(url.searchParams.get("client_id")).toBe("threads-app-id");
+  });
+
+  it("returns 500 when Threads OAuth is requested but THREADS_APP_ID/THREADS_APP_SECRET aren't configured", async () => {
+    const prisma = createFixturePrismaStore({
+      business: { findFirst: vi.fn().mockResolvedValue({ id: "biz_1" }) },
+    });
+    app = await buildApp({
+      prisma,
+      telegramBotToken: "fixture-bot-token",
+      jwtSecret: FIXTURE_JWT_SECRET,
+      metaAppId: "meta-app-id",
+      metaAppSecret: "meta-app-secret",
+      metaWebhookVerifyToken: "meta-webhook-verify-token",
+      tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
+      baseUrl: FIXTURE_BASE_URL,
+    });
+    const token = await signJwt(app, { sub: "user_1", telegramUserId: "42" });
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/oauth/threads/start",
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(500);
   });
 });
 
@@ -331,6 +377,8 @@ describe("GET /oauth/:platform/callback", () => {
       jwtSecret: FIXTURE_JWT_SECRET,
       metaAppId: "meta-app-id",
       metaAppSecret: "meta-app-secret",
+      threadsAppId: "threads-app-id",
+      threadsAppSecret: "threads-app-secret",
       metaWebhookVerifyToken: "meta-webhook-verify-token",
       tokenEncryptionKey: FIXTURE_TOKEN_ENCRYPTION_KEY,
       baseUrl: FIXTURE_BASE_URL,
@@ -345,6 +393,14 @@ describe("GET /oauth/:platform/callback", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ connected: true, platform: "threads" });
     expect(socialAccountUpsert).toHaveBeenCalledTimes(1);
+
+    const codeExchangeCall = threadsFetchImpl.mock.calls.find(
+      (call) => new URL(String(call[0])).pathname === "/oauth/access_token",
+    );
+    expect(codeExchangeCall).toBeDefined();
+    const requestBody = new URLSearchParams((codeExchangeCall![1] as RequestInit).body as string);
+    expect(requestBody.get("client_id")).toBe("threads-app-id");
+    expect(requestBody.get("client_secret")).toBe("threads-app-secret");
     const call = socialAccountUpsert.mock.calls[0]?.[0];
     expect(call.where.businessId_platform_externalAccountId).toEqual({
       businessId: "biz_1",

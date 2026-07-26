@@ -11,18 +11,23 @@ export interface PostComposerProps {
   apiBaseUrl?: string;
 }
 
+type AssetUploadStatus = "idle" | "uploading" | "error";
+
 interface AssetDraft {
   id: string;
   rawUrl: string;
   productName: string;
   price: string;
   description: string;
+  uploadStatus: AssetUploadStatus;
+  /** Local `blob:` preview shown while a phone-picked photo is uploading; cleared once POST /uploads returns a real url. */
+  localPreviewUrl?: string;
 }
 
 let assetSeq = 0;
 function emptyAsset(): AssetDraft {
   assetSeq += 1;
-  return { id: `asset-${assetSeq}`, rawUrl: "", productName: "", price: "", description: "" };
+  return { id: `asset-${assetSeq}`, rawUrl: "", productName: "", price: "", description: "", uploadStatus: "idle" };
 }
 
 interface CreatedPost {
@@ -53,9 +58,12 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1): T[] {
 
 /**
  * Draft post creation form per PLAN.md's M1 composer scope: caption plus one
- * or more source images (entered by URL — there's still no phone-camera
- * upload UI, just a pasted link per image), each optionally carrying a
- * product name/price/description that post_source_assets reserves room for.
+ * or more source images, each optionally carrying a product name/price/
+ * description that post_source_assets reserves room for. Each image can
+ * either be pasted as a URL or picked from the phone (camera or library) via
+ * POST /uploads (see routes/uploads.ts), which is the primary path for the
+ * target user -- a small retailer with a product in front of them and no
+ * separate place to host an image first.
  * The selected template is sent to POST /posts as `templateId`, which
  * best-effort enqueues apps/trigger's render-slides task to replace the
  * targeted accounts' raw pasted image with a branded rendered slide before
@@ -131,6 +139,34 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
     setAssets((current) => moveItem(current, index, direction));
   }
 
+  async function handlePhotoSelected(index: number, file: File) {
+    const previousPreviewUrl = assets[index]?.localPreviewUrl;
+    if (previousPreviewUrl) {
+      URL.revokeObjectURL(previousPreviewUrl);
+    }
+
+    const localPreviewUrl = URL.createObjectURL(file);
+    updateAsset(index, { uploadStatus: "uploading", localPreviewUrl });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`${apiBaseUrl}/uploads`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to upload photo with status ${response.status}`);
+      }
+      const body = (await response.json()) as { url: string };
+      URL.revokeObjectURL(localPreviewUrl);
+      updateAsset(index, { rawUrl: body.url, uploadStatus: "idle", localPreviewUrl: undefined });
+    } catch {
+      updateAsset(index, { uploadStatus: "error" });
+    }
+  }
+
   async function handleSubmit(intent: "draft" | "publish") {
     const nonEmptyAssets = assets.filter((asset) => asset.rawUrl.trim().length > 0);
     if (nonEmptyAssets.length === 0) {
@@ -139,6 +175,10 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
     }
     if (intent === "publish" && selectedAccountIds.size === 0) {
       setStatus({ kind: "error", message: "Select at least one account to publish to" });
+      return;
+    }
+    if (assets.some((asset) => asset.uploadStatus === "uploading")) {
+      setStatus({ kind: "error", message: "Wait for photo uploads to finish before continuing" });
       return;
     }
 
@@ -192,7 +232,8 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
     }
   }
 
-  const busy = status.kind === "saving" || status.kind === "publishing";
+  const uploading = assets.some((asset) => asset.uploadStatus === "uploading");
+  const busy = status.kind === "saving" || status.kind === "publishing" || uploading;
   const fieldClassName =
     "w-full rounded-[10px] border-none bg-pa-bg px-3 py-2.5 text-[14.5px] text-pa-text placeholder:text-pa-hint";
 
@@ -260,11 +301,47 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
             </div>
           </div>
 
-          {asset.rawUrl.trim().length > 0 ? (
-            <img src={asset.rawUrl} alt="" className="h-[150px] w-full rounded-[10px] object-cover" />
+          {asset.rawUrl.trim().length > 0 || asset.localPreviewUrl ? (
+            <div className="relative">
+              <img
+                src={asset.rawUrl.trim().length > 0 ? asset.rawUrl : asset.localPreviewUrl}
+                alt=""
+                className="h-[150px] w-full rounded-[10px] object-cover"
+              />
+              {asset.uploadStatus === "uploading" && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-[10px] bg-black/40 text-[13px] font-semibold text-white">
+                  Uploading…
+                </div>
+              )}
+            </div>
           ) : (
             <div className="flex h-[150px] w-full items-center justify-center rounded-[10px] border border-dashed border-pa-hint text-[13px] text-pa-hint opacity-70">
               Drop product photo
+            </div>
+          )}
+
+          <label
+            htmlFor={`post-composer-asset-${index}-file`}
+            className="block w-full cursor-pointer rounded-[10px] border-[1.4px] border-dashed border-pa-link py-2.5 text-center text-[13.5px] font-semibold text-pa-link"
+          >
+            {asset.uploadStatus === "uploading" ? "Uploading…" : "Take or upload photo"}
+          </label>
+          <input
+            id={`post-composer-asset-${index}-file`}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            disabled={asset.uploadStatus === "uploading"}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void handlePhotoSelected(index, file);
+            }}
+            className="sr-only"
+          />
+          {asset.uploadStatus === "error" && (
+            <div role="alert" className="text-[12.5px] text-pa-destructive">
+              Upload failed. Try again, or paste a link below.
             </div>
           )}
 
@@ -276,6 +353,7 @@ export function PostComposer({ apiBaseUrl = DEFAULT_API_BASE_URL }: PostComposer
             type="url"
             placeholder="Image URL"
             value={asset.rawUrl}
+            disabled={asset.uploadStatus === "uploading"}
             onChange={(event) => updateAsset(index, { rawUrl: event.target.value })}
             className={fieldClassName}
           />

@@ -33,7 +33,15 @@ export const FACEBOOK_OAUTH_SCOPES = [
 export const THREADS_OAUTH_SCOPES = [
   "threads_basic",
   "threads_content_publish",
+  // Posts a reply (POST calls to reply endpoints) -- needed by the AI
+  // auto-reply pipeline's publish-reply.ts (replyToThreadsPost).
   "threads_manage_replies",
+  // Reads replies (GET calls to reply endpoints) -- confirmed against
+  // Meta's Threads webhooks reference as also required, alongside
+  // threads_basic, for the `replies` webhook topic to be delivered at all;
+  // without it Threads reply webhooks silently never arrive even though
+  // subscribe-webhooks.ts has nothing to do with it (see its doc comment).
+  "threads_read_replies",
   "threads_manage_insights",
 ];
 

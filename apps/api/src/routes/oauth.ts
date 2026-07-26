@@ -98,6 +98,17 @@ export interface OAuthRoutesOptions {
   prisma: OAuthStore;
   metaAppId: string;
   metaAppSecret: string;
+  /**
+   * Threads API requires its own "Threads App ID"/"Threads App Secret" pair
+   * (Meta App Dashboard > Threads API > Settings) for the authorize dialog
+   * and token exchange -- these are NOT the same values as metaAppId/
+   * metaAppSecret (which are the standard Facebook Login app credentials),
+   * even though both live under the same Meta app. Sending the Facebook App
+   * ID to threads.net/oauth/authorize gets rejected as if no app ID were
+   * sent at all.
+   */
+  threadsAppId?: string;
+  threadsAppSecret?: string;
   /** 32 raw bytes hex-encoded (64 hex chars) — see packages/shared/src/crypto.ts. */
   tokenEncryptionKey: string;
   /** This API's own public HTTPS base URL, used to build the redirect_uri Meta requires. */
@@ -114,6 +125,16 @@ export interface OAuthRoutesOptions {
 
 function buildRedirectUri(baseUrl: string, platform: OAuthInitiablePlatform): string {
   return `${baseUrl.replace(/\/+$/, "")}/oauth/${platform}/callback`;
+}
+
+/** Throws if THREADS_APP_ID/THREADS_APP_SECRET aren't configured -- see OAuthRoutesOptions.threadsAppId's doc comment for why these can't fall back to metaAppId/metaAppSecret. */
+function requireThreadsCredentials(options: OAuthRoutesOptions): { appId: string; appSecret: string } {
+  if (!options.threadsAppId || !options.threadsAppSecret) {
+    throw new Error(
+      "Threads OAuth is not configured: THREADS_APP_ID and THREADS_APP_SECRET are required (distinct from META_APP_ID/META_APP_SECRET -- see Meta App Dashboard > Threads API > Settings)",
+    );
+  }
+  return { appId: options.threadsAppId, appSecret: options.threadsAppSecret };
 }
 
 /**
@@ -203,7 +224,11 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
     const authorizationUrl =
       platform === "facebook_page"
         ? buildFacebookAuthorizationUrl({ appId: options.metaAppId, redirectUri, state: stateToken })
-        : buildThreadsAuthorizationUrl({ appId: options.metaAppId, redirectUri, state: stateToken });
+        : buildThreadsAuthorizationUrl({
+            appId: requireThreadsCredentials(options).appId,
+            redirectUri,
+            state: stateToken,
+          });
 
     return { authorizationUrl };
   });
@@ -371,18 +396,23 @@ export function registerOAuthRoutes(app: FastifyInstance, options: OAuthRoutesOp
         return { connected: true, platform, pageCount: pages.length };
       }
 
+      const threadsCredentials = requireThreadsCredentials(options);
       const shortLived = await exchangeThreadsCodeForToken(
-        { appId: options.metaAppId, appSecret: options.metaAppSecret, redirectUri, code: query.code },
+        { appId: threadsCredentials.appId, appSecret: threadsCredentials.appSecret, redirectUri, code: query.code },
         options.threadsFetchImpl,
       );
       const longLived = await exchangeThreadsForLongLivedToken(
-        { appSecret: options.metaAppSecret, shortLivedToken: shortLived.accessToken },
+        { appSecret: threadsCredentials.appSecret, shortLivedToken: shortLived.accessToken },
         options.threadsFetchImpl,
       );
 
       const encryptedToken = encryptToken(longLived.accessToken, options.tokenEncryptionKey);
       const tokenExpiresAt = longLived.expiresIn ? new Date(currentTime.getTime() + longLived.expiresIn * 1000) : null;
 
+      // No subscribeToWebhooks call here (unlike the facebook_page/
+      // instagram_business branch above) -- Threads has no per-account
+      // subscription endpoint to call. See subscribe-webhooks.ts's doc
+      // comment for what actually gates Threads webhook delivery instead.
       await options.prisma.socialAccount.upsert({
         where: {
           businessId_platform_externalAccountId: {
